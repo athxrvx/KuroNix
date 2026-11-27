@@ -8,7 +8,7 @@
         email = "samthepacman@protonmail.com";
       };
       init.defaultBranch = "main";
-      core.editor = "hx";
+      core.editor = "nvim";
       pull.rebase = true;
       push.autoSetupRemote = true;
       fetch.prune = true;
@@ -28,7 +28,7 @@
   programs.gh = {
     enable = true;
     settings = {
-      editor = "hx";
+      editor = "nvim";
       git_protocol = "https";
       prompt = "enabled";
       aliases = {

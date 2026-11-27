@@ -10,5 +10,5 @@
 - `keybinds.lua`: window, launcher and workspace shortcuts
 - `media.lua`: volume, microphone, brightness and player controls
 
-Kuro-generated appearance and input settings remain in `kuro.lua`; edit
-`~/.config/kuro/kuro.toml` and run `kurogen` to change those values.
+This retained profile uses its own static appearance and input settings. The
+active Niri profile receives generated colors from Kuro Engine.

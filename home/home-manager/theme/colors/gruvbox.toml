@@ -5,7 +5,9 @@ accent = "#7daea3"
 selection = "#504945"
 muted = "#665c54"
 
+# Background used by Kuro Shell.
 background = "#282828"
+# darker_background is used by GTK, Qt, Kitty, and other apps.
 dark_background = "#1e1e1e"
 darker_background = "#161616"
 lighter_background = "#3c3836"

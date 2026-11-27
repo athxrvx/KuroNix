@@ -40,17 +40,20 @@ in
   };
 
   systemd.services.lid-close-suspend = {
-    description = "Lock Kuro and suspend when the laptop lid closes";
+    description = "Lock Kuro and hibernate when the laptop lid closes";
     serviceConfig.Type = "oneshot";
     script = ''
       ${lidIsClosed}
       lid_is_closed || exit 0
 
-      ${pkgs.systemd}/bin/systemctl --user --machine=atharva@.host start kuro-lid-lock.service
+      if ! ${pkgs.systemd}/bin/systemctl --user --machine=atharva@.host start kuro-shell-lid-lock.service; then
+        echo "Kuro lock service failed; aborting lid-close hibernation" >&2
+        exit 1
+      fi
       ${pkgs.coreutils}/bin/sleep 1
 
       # The lid may have been reopened while Kuro was locking.
-      lid_is_closed && ${pkgs.systemd}/bin/systemctl suspend
+      lid_is_closed && ${pkgs.systemd}/bin/systemctl hibernate
     '';
   };
 }

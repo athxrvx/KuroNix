@@ -1,49 +1,48 @@
-# Monolix
+# Kuro
 
-Monolix is a single-host NixOS and Home Manager flake for an HP Victus
-15-fb2117ax. The flake output `athena` builds the `hosts/athena` configuration
-for the `atharva` account; the repository and its `origin` remote are named
-`monolix`. There is one desktop: **Hyprland** with the **Kuro** QuickShell
-shell, and Kuro is the source of truth for themes, fonts and wallpapers.
+Kuro is a single-host NixOS and Home Manager configuration for an HP Victus
+15-fb2117ax. The `athena` flake output configures the `atharva` account. Niri is
+the default desktop session, with Kuro Shell providing the Quickshell desktop
+UI. The existing Hyprland configuration and profile remain available in the
+tree as an inactive alternative.
 
-## Quick start
+## Getting started
+
+From this configuration directory:
 
 ```sh
-git clone https://github.com/athxrvx/monolix.git
-cd monolix
-
 kuro sync          # build and activate NixOS + Home Manager
 kuro status        # show system and Home Manager generations
 ```
 
-Run `kuro` from a directory inside the flake, or point it at one with
-`KURO_FLAKE=$HOME/.config/nixconfig` or `kuro --flake $HOME/.config/nixconfig ...`. There is
-no checked-in `flake.lock`; the first build creates one, and `kuro update`
-refreshes the inputs later.
+Run `kuro` from inside the flake, or set `KURO_FLAKE=$HOME/.config/nixconfig`
+or pass `--flake PATH`. The first Nix build creates `flake.lock`; `kuro update`
+refreshes inputs.
 
-## What's inside
+## Desktop and theming
 
-- **Hyprland session** — SDDM autologin, Hyprland keybinds and autostart,
-  and the QuickShell Kuro shell installed at `~/.config/quickshell/shell` and
-  launched from Hyprland's autostart.
-- **Kuro theming** — theme definitions are Nix-managed TOML files in
-  `home/home-manager/theme/colors/`, installed to `~/.config/kuro/themes/`.
-  The active setting stays imperative in `~/.config/kuro/kuro.toml`; `kurogen`
-  seeds it on first run and renders runtime files for Quickshell, Zsh,
-  Hyprland and kitty. Nix does not own those generated outputs.
-- **Hardware and power** — hybrid AMD/NVIDIA graphics with `nvidia-offload`,
-  `amd_pstate=active`, and `services.tuned` with tuned-ppd so
-  `powerprofilesctl` keeps working.
-- **Secure Boot** — opt-in Lanzaboote signed boot entries managed with `sbctl`.
-- **`kuro` CLI** — build, activate, inspect, maintain and update the flake:
-  `kuro sync`, `kuro home`, `kuro build`, `kuro test`, `kuro --dry-run sync`,
-  `kuro --profile athena test`, `kuro doctor`, `kuro clean --keep 5`,
-  `kuro search ...`, `kuro run ...`, `kuro try ...`, `kuro fhs ...`, `kuro jump`.
+- **Niri** is enabled by NixOS and selected as SDDM's default session. Its
+  configuration starts Kuro Shell and Xwayland Satellite.
+- **Kuro Shell** is the Niri-ready Quickshell desktop, installed as
+  `kuro-shell`. Its workspace and window controls use Niri IPC.
+- **Kuro** is the single theme source. `~/.config/kuro/kuro.toml` selects a
+  palette, separate shell/application backgrounds, and shell/toolkit fonts;
+  `kurogen` writes the Quickshell theme JSON, Niri color fragment, GTK and Qt
+  themes, kitty theme, Zsh colors and Neovim colorscheme.
+- **Hyprland** files and the old Home Manager profile remain in the repository,
+  but the active flake output uses the Niri profile.
 
-## Documentation
+Theme commands:
 
-- [Full configuration guide](home/documentation/README.md) — repository layout,
-  commands, the Kuro theme workflow, the Hyprland session, power management,
-  Secure Boot and updates.
-- [Kuro shell reference](home/home-manager/config/desktop/quickshell/kuro/README.md)
-  — panels, bar layouts and shell internals.
+```sh
+kurogen themes
+kurogen scheme jellybeans
+kurogen set theme.mode light
+kurogen
+```
+
+## Repository guide
+
+- [Full configuration guide](home/documentation/README.md)
+- [Kuro Shell reference](home/home-manager/config/desktop/quickshell/kuro-shell/README.md)
+- [Kuro theme engine](home/home-manager/config/desktop/kuro/kurogen.py)

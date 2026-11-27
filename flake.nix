@@ -27,17 +27,16 @@
           home-manager.nixosModules.home-manager
           lanzaboote.nixosModules.lanzaboote
           ./modules/boot/secureboot.nix
-          ./modules/desktop/hyprland.nix
+          ./modules/desktop/niri.nix
           {
+            systemd.services."home-manager-atharva".enable = false; # make true for home-manager to be managed by the system as well
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
-            # Preserve existing user files when Home Manager first takes
-            # ownership of them (including the current mimeapps.list).
             home-manager.backupFileExtension = "backup";
             home-manager.users.atharva = {
               imports = [
                 ./home/home-manager
-                ./home/home-manager/profiles/hyprland.nix
+                ./home/home-manager/profiles/niri.nix
                 nix-flatpak.homeManagerModules.nix-flatpak
               ];
               home.stateVersion = "26.05";

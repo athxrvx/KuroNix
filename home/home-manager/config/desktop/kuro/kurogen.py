@@ -3,13 +3,17 @@
 
 Source of truth : ~/.config/kuro/kuro.toml
 Outputs         : ~/.cache/kuro/theme.json       (Quickshell)
-                  ~/.config/hypr/kuro.lua        (Hyprland)
+                  ~/.config/niri/kuro-theme.kdl  (Niri)
                   ~/.config/kitty/kuro.conf      (kitty)
-                  ~/.config/helix/themes/kuro.toml (Helix)
+                  ~/.config/nvim/colors/kuro.lua  (Neovim)
+                  ~/.config/gtk-{3,4}.0/gtk.css   (GTK)
+                  ~/.config/qt{5,6}ct/*           (Qt)
 
 Usage:
     kurogen                       regenerate everything
-    kurogen set theme.gaps_in 0   edit one value, then regenerate
+    kurogen set theme.gaps 8      edit one value, then regenerate
+    kurogen window "Title" "open-floating true"
+                                  add a rule for an exact Niri window title
     kurogen path                  print the config path
 
 On first run, kurogen copies kuro.toml and the default themes from
@@ -40,9 +44,15 @@ FLEA_THEME_DIR = HOME / ".cache/kuro/flea"
 FLEA_COLORS = FLEA_THEME_DIR / "colors.toml"
 FLEA_SHELL = FLEA_THEME_DIR / "shell.toml"
 FLEA_FONT_FAMILY = FLEA_THEME_DIR / "font-family"
-HYPR_LUA = HOME / ".config/hypr/kuro.lua"
+NIRI_KDL = HOME / ".config/niri/kuro-theme.kdl"
 KITTY_CONF = HOME / ".config/kitty/kuro.conf"
-HELIX_THEME = HOME / ".config/helix/themes/kuro.toml"
+NVIM_THEME = HOME / ".config/nvim/colors/kuro.lua"
+GTK3_CSS = HOME / ".config/gtk-3.0/gtk.css"
+GTK4_CSS = HOME / ".config/gtk-4.0/gtk.css"
+QT5_CONFIG = HOME / ".config/qt5ct/qt5ct.conf"
+QT6_CONFIG = HOME / ".config/qt6ct/qt6ct.conf"
+QT5_COLORS = HOME / ".config/qt5ct/colors/kuro.conf"
+QT6_COLORS = HOME / ".config/qt6ct/colors/kuro.conf"
 
 DEFAULTS = {
     "colors": {
@@ -52,7 +62,8 @@ DEFAULTS = {
             "#888888", "#ffa1a1", "#bddeab", "#ffdca0",
             "#b1d8f6", "#fbdaff", "#1ab2a8", "#ffffff",
         ],
-        "base": "#0d0d0d",
+        "base": "#0b0b0b",
+        "shell_background": "#0d0d0d",
         "ink": "#dedede",
         "hot": "#e27373",
         "accent": "#8a694c",
@@ -80,6 +91,8 @@ DEFAULTS = {
     },
     "theme": {
         "scheme": "jellybeans",
+        "mode": "auto",
+        # Compatibility defaults for existing Hyprland and shell consumers.
         "rounding": 0,
         "gaps_in": 4,
         "gaps_out": 8,
@@ -98,33 +111,45 @@ DEFAULTS = {
         "radius_small": 0,
         "padding": 16,
         "gap": 10,
+        # Niri-adapted visual settings.
+        "gaps": 8,
     },
     "fonts": {
-        "ui_family": "JetBrainsMono Nerd Font",
+        "shell_font": "JetBrainsMono Nerd Font",
         "ui_size": 15,
-        "icon_size": 20,
-        "terminal_family": "JetBrainsMono Nerd Font",
         "terminal_size": 11.5,
+    },
+    "toolkit": {"inherit_theme": True, "font": "Fira Sans", "size": 10},
+    "niri": {
+        "center_focused_column": "never",
+        "border_size": 3,
+        "rounding": 10,
+        "blur": False,
+        "active_opacity": 1.0,
+        "inactive_opacity": 1.0,
+        "animations": True,
+        "shadow": True,
+        "shadow_range": 4,
+        "shadow_power": 3,
+        "shadow_color": "0x990d0d0d",
+    },
+    "rules": {},
+    "shell": {
+        "bar_height": 30,
+        "popup_gap": 14,
+        "radius": 0,
+        "radius_small": 0,
+        "padding": 16,
+        "gap": 10,
+        "icon_size": 20,
     },
     "terminal": {"opacity": 0.97, "padding": 10, "cursor_shape": "block", "scrollback": 10000},
     "apps": {
         "terminal": "kitty",
-        "file_manager": "dolphin",
+        "file_manager": "nautilus",
         "menu": "qs -c shell ipc call launcher toggle",
         "wallpaper_dir": "~/Pictures/Wallpaper",
         "wallpaper_picker": "quickshell -c hyprquickpaper",
-    },
-    "hypr": {
-        "layout": "dwindle",
-        "kb_layout": "us",
-        "kb_options": "altwin:swap_alt_win",
-        "follow_mouse": 1,
-        "mouse_refocus": False,
-        "natural_scroll": True,
-        "blur_size": 20,
-        "blur_passes": 4,
-        "blur_vibrancy": 0.1696,
-        "rounding_power": 2,
     },
 }
 
@@ -192,6 +217,8 @@ def theme_colors(name: str) -> dict:
             raise KuroError(f"theme {name!r}: palette needs 16 entries, found {len(palette)}")
         colors = deep_merge(DEFAULTS["colors"], tc)
         colors["palette"] = palette[:16]
+        colors["shell_background"] = tc.get("background", colors["shell_background"])
+        colors["base"] = tc.get("darker_background", colors["base"])
         return colors
 
     # Omarchy theme (flat semantic names).
@@ -199,7 +226,8 @@ def theme_colors(name: str) -> dict:
         value = tc.get(key)
         return str(value) if value else fallback
 
-    bg = get("background", DEFAULTS["colors"]["base"])
+    shell_bg = get("background", DEFAULTS["colors"]["shell_background"])
+    bg = get("darker_background", DEFAULTS["colors"]["base"])
     fg = get("foreground", DEFAULTS["colors"]["ink"])
     red = get("red", DEFAULTS["colors"]["hot"])
     green = get("green", DEFAULTS["colors"]["palette"][2])
@@ -231,8 +259,18 @@ def theme_colors(name: str) -> dict:
     return {
         "palette": palette,
         "base": bg,
+        "shell_background": shell_bg,
         "ink": fg,
         "hot": red,
+        "red": red,
+        "yellow": yellow,
+        "orange": get("orange", DEFAULTS["colors"]["orange"]),
+        "green": green,
+        "cyan": cyan,
+        "blue": blue,
+        "magenta": magenta,
+        "brown": get("brown", DEFAULTS["colors"]["brown"]),
+        "muted": get("muted", DEFAULTS["colors"]["muted"]),
         "accent": accent,
         "accent_text": get("accent_text", fg),
         "cursor": get("cursor", get("bright_foreground", fg)),
@@ -260,15 +298,20 @@ def resolve_theme(cfg: dict, raw: dict) -> None:
         cfg["colors"] = deep_merge(colors, explicit)
         theme = load_theme(scheme)
         cfg["scheme_name"] = theme.get("name", scheme)
+        scheme_mode = theme.get("mode", "dark")
     else:
         cfg["colors"] = deep_merge(cfg["colors"], explicit)
         cfg["scheme_name"] = "Custom"
+        scheme_mode = "dark"
+
+    requested_mode = str(cfg.get("theme", {}).get("mode", "auto")).strip().lower()
+    cfg["mode"] = scheme_mode if requested_mode == "auto" else requested_mode
+    if cfg["mode"] not in ("dark", "light"):
+        raise KuroError("theme.mode must be 'auto', 'dark', or 'light'")
 
     cfg["scheme"] = scheme or "custom"
     cfg["schemes"] = list_themes()
 
-    if cfg["hypr"].get("layout") not in ("dwindle", "scrolling"):
-        raise KuroError("hypr.layout must be 'dwindle' or 'scrolling'")
 
 
 def bootstrap_defaults() -> bool:
@@ -318,6 +361,40 @@ def load(path: Path = CONFIG) -> dict:
         raise KuroError(f"invalid TOML in {path}: {exc}")
 
     cfg = deep_merge(DEFAULTS, raw)
+    # Read old kuro.toml files while users transition to the extensible,
+    # compositor-specific sections. Explicit new values always take priority.
+    legacy_theme = raw.get("theme", {})
+    if "gaps" not in legacy_theme and "gaps_out" in legacy_theme:
+        cfg["theme"]["gaps"] = legacy_theme["gaps_out"]
+    # Migrate the old all-in-one theme table into compositor, rule, and shell
+    # settings. Values written in the new sections take precedence.
+    legacy_niri = (
+        "border_size", "blur", "animations", "active_opacity", "inactive_opacity",
+        "shadow", "shadow_range", "shadow_power", "shadow_color", "rounding",
+    )
+    for key in legacy_niri:
+        if key in legacy_theme and key not in raw.get("niri", {}):
+            cfg["niri"][key] = legacy_theme[key]
+    # The previous draft placed global Niri appearance values in [rules].
+    # Move them out; [rules] is now exclusively for named window rules.
+    for key in legacy_niri:
+        if key in raw.get("rules", {}) and key not in raw.get("niri", {}):
+            cfg["niri"][key] = raw["rules"][key]
+            cfg["rules"].pop(key, None)
+    for key in ("bar_height", "popup_gap", "radius", "radius_small", "padding", "gap"):
+        if key in legacy_theme and key not in raw.get("shell", {}):
+            cfg["shell"][key] = legacy_theme[key]
+    # Older settings had separate interface and terminal font families. Keep
+    # the interface family as the shared shell font unless the new key exists.
+    if "shell_font" not in raw.get("fonts", {}):
+        old_shell_font = raw.get("fonts", {}).get("ui_family") or raw.get("fonts", {}).get("terminal_family")
+        if old_shell_font:
+            cfg["fonts"]["shell_font"] = old_shell_font
+    if "icon_size" in raw.get("fonts", {}) and "icon_size" not in raw.get("shell", {}):
+        cfg["shell"]["icon_size"] = raw["fonts"]["icon_size"]
+    legacy_terminal_size = raw.get("terminal", {}).get("font_size")
+    if legacy_terminal_size is not None and "terminal_size" not in raw.get("fonts", {}):
+        cfg["fonts"]["terminal_size"] = legacy_terminal_size
     resolve_theme(cfg, raw)
     palette = cfg["colors"].get("palette") or []
     if len(palette) < 16:
@@ -327,41 +404,6 @@ def load(path: Path = CONFIG) -> dict:
 
 
 # ── helpers ──────────────────────────────────────────────────────────
-def hex_rgba(value: str) -> str:
-    """#rrggbb / #rrggbbaa -> rgba(rrggbbaa) for Hyprland."""
-    text = str(value).strip()
-    if text.startswith(("rgba(", "rgb(")):
-        return text
-    h = text.lstrip("#")
-    if len(h) == 6:
-        h += "ff"
-    if len(h) != 8:
-        return "rgba(ffffffff)"
-    return f"rgba({h.lower()})"
-
-
-def hex_argb(value: str) -> str:
-    """#rrggbb -> 0xffrrggbb (Hyprland misc.background_color)."""
-    h = str(value).strip().lstrip("#")
-    if len(h) == 6:
-        return f"0xff{h.lower()}"
-    if len(h) == 8:
-        return f"0x{h[6:8]}{h[0:6]}".lower()
-    return "0xff000000"
-
-
-def lua(value) -> str:
-    if isinstance(value, bool):
-        return "true" if value else "false"
-    if isinstance(value, (int, float)):
-        return repr(value)
-    if isinstance(value, str):
-        return json.dumps(value)
-    if isinstance(value, (list, tuple)):
-        return "{ " + ", ".join(lua(v) for v in value) + " }"
-    raise KuroError(f"cannot serialise {value!r} to Lua")
-
-
 def toml_value(value) -> str:
     if isinstance(value, bool):
         return "true" if value else "false"
@@ -390,15 +432,18 @@ def write_if_changed(path: Path, text: str) -> bool:
 
 # ── renderers ────────────────────────────────────────────────────────
 def render_theme_json(cfg: dict) -> str:
-    c, t, f = cfg["colors"], cfg["theme"], cfg["fonts"]
+    c, t, f, s = cfg["colors"], cfg["theme"], cfg["fonts"], cfg["shell"]
+    toolkit = cfg["toolkit"]
     a, app = cfg["apps"], cfg["terminal"]
     data = {
         "scheme": cfg.get("scheme", ""),
         "schemeName": cfg.get("scheme_name", ""),
+        "mode": cfg.get("mode", "dark"),
         "schemes": cfg.get("schemes", []),
         "colors": {
             "palette": c["palette"],
             "base": c["base"],
+            "shellBackground": c["shell_background"],
             "ink": c["ink"],
             "hot": c["hot"],
             "accent": c["accent"],
@@ -414,23 +459,26 @@ def render_theme_json(cfg: dict) -> str:
             "tabInactiveFg": c["tab_inactive_foreground"],
         },
         "theme": {
-            "barHeight": t["bar_height"],
-            "popupGap": t["popup_gap"],
-            "radius": t["radius"],
-            "radiusSmall": t["radius_small"],
-            "padding": t["padding"],
-            "gap": t["gap"],
-            "rounding": t["rounding"],
-            "borderSize": t["border_size"],
-            "gapsIn": t["gaps_in"],
-            "gapsOut": t["gaps_out"],
+            "barHeight": s["bar_height"],
+            "popupGap": s["popup_gap"],
+            "radius": s["radius"],
+            "radiusSmall": s["radius_small"],
+            "padding": s["padding"],
+            "gap": s["gap"],
+            "gaps": t["gaps"],
         },
         "fonts": {
-            "ui": f["ui_family"],
+            "shell": f["shell_font"],
+            "ui": f["shell_font"],
             "uiSize": f["ui_size"],
-            "iconSize": f["icon_size"],
-            "terminal": f["terminal_family"],
+            "iconSize": s["icon_size"],
+            "terminal": f["shell_font"],
             "terminalSize": f["terminal_size"],
+        },
+        "toolkit": {
+            "font": toolkit["font"],
+            "size": toolkit["size"],
+            "inheritTheme": toolkit["inherit_theme"],
         },
         "apps": {
             "terminal": a["terminal"],
@@ -449,70 +497,419 @@ def render_theme_json(cfg: dict) -> str:
     return json.dumps(data, indent=2) + "\n"
 
 
-def render_helix_theme(cfg: dict) -> str:
-    """Render Helix's custom theme from the currently selected Kuro colors."""
+def niri_color(value: str) -> str:
+    """Convert Kuro hex or rgb()/rgba() colors to Niri's #RRGGBBAA form."""
+    text = str(value).strip().lower()
+    if text.startswith("0x") and len(text) == 10:
+        return f"#{text[4:]}{text[2:4]}"
+    if text.startswith("rgba(") and text.endswith(")"):
+        text = text[5:-1]
+    elif text.startswith("rgb(") and text.endswith(")"):
+        text = text[4:-1]
+    else:
+        text = text.lstrip("#")
+    if len(text) == 6:
+        text += "ff"
+    if len(text) != 8 or not re.fullmatch(r"[0-9a-f]{8}", text):
+        return "#ffffffff"
+    return f"#{text}"
+
+
+def render_niri_kdl(cfg: dict) -> str:
+    c, t, n, r = cfg["colors"], cfg["theme"], cfg["niri"], cfg["rules"]
+    lines = [
+        "// Generated by kurogen from ~/.config/kuro/kuro.toml.",
+        "// Edit Kuro's theme settings and run `kurogen`; do not edit this file.",
+        "",
+        "layout {",
+        f"    gaps {t['gaps']}",
+        f'    center-focused-column "{n["center_focused_column"]}"',
+    ]
+    if n["border_size"] > 0:
+        lines.extend([
+            "    focus-ring {",
+            f"        width {n['border_size']}",
+            f'        active-color "{niri_color(c["active_border"])}"',
+            f'        inactive-color "{niri_color(c["inactive_border"])}"',
+            "    }",
+        ])
+    else:
+        lines.append("    focus-ring { off }")
+    if n["shadow"]:
+        lines.extend([
+            "    shadow {",
+            "        on",
+            f"        softness {n['shadow_range']}",
+            f"        spread {n['shadow_power']}",
+            f'        color "{niri_color(n["shadow_color"])}"',
+            "    }",
+        ])
+    lines.extend(["}", ""])
+    if n["rounding"] > 0:
+        lines.extend([
+            "window-rule {",
+            f"    geometry-corner-radius {n['rounding']}",
+            "    clip-to-geometry true",
+            "}",
+            "",
+        ])
+    for active, opacity in ((True, n["active_opacity"]), (False, n["inactive_opacity"])):
+        if opacity < 1:
+            lines.extend([
+                "window-rule {",
+                f"    match is-active={'true' if active else 'false'}",
+                f"    opacity {opacity}",
+                "}",
+                "",
+            ])
+    if n["blur"]:
+        lines.extend([
+            "window-rule {",
+            "    background-effect { blur true }",
+            "}",
+            "",
+        ])
+    if not n["animations"]:
+        lines.extend(["animations { off }", ""])
+    lines.extend([
+        "overview {",
+        f'    backdrop-color "{niri_color(c["shell_background"])}"',
+        "}",
+        "",
+    ])
+    for title, directives in r.items():
+        if not isinstance(directives, list):
+            raise KuroError(f"rules.{title} must be an array of Niri rule directives")
+        if not directives:
+            continue
+        title_pattern = "^" + re.escape(str(title)) + "$"
+        lines.extend(["window-rule {", f"    match title={json.dumps(title_pattern)}"])
+        for directive in directives:
+            for directive_line in str(directive).splitlines():
+                lines.append(f"    {directive_line}" if directive_line else "")
+        lines.extend(["}", ""])
+    return "\n".join(lines)
+
+
+def css_quote(value: str) -> str:
+    return '"' + str(value).replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def mix_hex(first: str, second: str, amount: float) -> str:
+    """Mix two #RRGGBB colors, with amount selecting the second color."""
+    a = str(first).strip().lstrip("#")[:6]
+    b = str(second).strip().lstrip("#")[:6]
+    if not re.fullmatch(r"[0-9a-fA-F]{6}", a) or not re.fullmatch(r"[0-9a-fA-F]{6}", b):
+        return first
+    channels = [
+        round(int(a[i:i + 2], 16) * (1 - amount) + int(b[i:i + 2], 16) * amount)
+        for i in (0, 2, 4)
+    ]
+    return "#" + "".join(f"{channel:02x}" for channel in channels)
+
+
+def libadwaita_palette(cfg: dict) -> dict[str, str]:
+    """Map Kuro's semantic palette onto libadwaita's GNOME palette variables."""
     c = cfg["colors"]
-    p = c["palette"]
-    groups = {
-        "ui.background": {"fg": c["ink"], "bg": c["base"]},
-        "ui.text": {"fg": c["ink"]},
-        "ui.text.focus": {"fg": c["ink"], "modifiers": ["bold"]},
-        "ui.text.inactive": {"fg": p[8]},
-        "ui.virtual": {"fg": p[8]},
-        "ui.virtual.indent-guide": {"fg": p[8]},
-        "ui.cursor": {"fg": c["cursor_text"], "bg": c["cursor"]},
-        "ui.cursor.primary": {"fg": c["cursor_text"], "bg": c["cursor"]},
-        "ui.cursor.match": {"fg": c["accent_text"], "bg": c["accent"], "modifiers": ["bold"]},
-        "ui.cursorline.primary": {"bg": p[0]},
-        "ui.selection": {"fg": c["selection_foreground"], "bg": c["selection_background"]},
-        "ui.selection.primary": {"fg": c["selection_foreground"], "bg": c["selection_background"]},
-        "ui.linenr": {"fg": p[8]},
-        "ui.linenr.selected": {"fg": c["accent"], "modifiers": ["bold"]},
-        "ui.statusline": {"fg": c["ink"], "bg": p[0]},
-        "ui.statusline.inactive": {"fg": p[8], "bg": c["base"]},
-        "ui.statusline.normal": {"fg": c["accent_text"], "bg": c["accent"], "modifiers": ["bold"]},
-        "ui.statusline.insert": {"fg": c["cursor_text"], "bg": p[2], "modifiers": ["bold"]},
-        "ui.statusline.select": {"fg": c["cursor_text"], "bg": p[4], "modifiers": ["bold"]},
-        "ui.bufferline": {"fg": p[8], "bg": c["base"]},
-        "ui.bufferline.active": {"fg": c["accent_text"], "bg": c["accent"], "modifiers": ["bold"]},
-        "ui.popup": {"fg": c["ink"], "bg": p[0]},
-        "ui.window": {"fg": p[8], "bg": c["base"]},
-        "ui.help": {"fg": c["ink"], "bg": p[0]},
-        "ui.menu": {"fg": c["ink"], "bg": p[0]},
-        "ui.menu.selected": {"fg": c["accent_text"], "bg": c["accent"], "modifiers": ["bold"]},
-        "ui.highlight": {"fg": c["cursor_text"], "bg": c["cursor"]},
-        "warning": {"fg": p[3]},
-        "error": {"fg": c["hot"]},
-        "info": {"fg": p[4]},
-        "hint": {"fg": p[6]},
-        "diagnostic.error": {"underline": {"color": c["hot"], "style": "curl"}},
-        "diagnostic.warning": {"underline": {"color": p[3], "style": "curl"}},
-        "diagnostic.info": {"underline": {"color": p[4], "style": "curl"}},
-        "diagnostic.hint": {"underline": {"color": p[6], "style": "curl"}},
-        "attribute": {"fg": p[5]},
-        "comment": {"fg": p[8], "modifiers": ["italic"]},
-        "constant": {"fg": p[3]},
-        "constant.numeric": {"fg": p[3]},
-        "constructor": {"fg": p[5]},
-        "function": {"fg": p[4]},
-        "function.method": {"fg": p[4]},
-        "keyword": {"fg": c["accent"], "modifiers": ["bold"]},
-        "namespace": {"fg": p[4]},
-        "operator": {"fg": p[8]},
-        "punctuation": {"fg": p[8]},
-        "string": {"fg": p[2]},
-        "tag": {"fg": p[1]},
-        "type": {"fg": p[6]},
-        "variable": {"fg": c["ink"]},
-        "variable.parameter": {"fg": p[3]},
-        "diff.plus": {"fg": p[2]},
-        "diff.minus": {"fg": c["hot"]},
-        "diff.delta": {"fg": p[3]},
+    light = cfg.get("mode") == "light"
+    colors = {
+        "blue": c["blue"],
+        "green": c["green"],
+        "yellow": c["yellow"],
+        "orange": c["orange"],
+        "red": c["red"],
+        "purple": c["magenta"],
+        "brown": c["brown"],
+        "light": c["ink"],
+        "dark": c["base"],
     }
-    lines = ["# Generated by kurogen from the active Kuro palette."]
-    for name, style in groups.items():
-        lines.append(f"{json.dumps(name)} = {toml_value(style)}")
+    result = {}
+    for name, color in colors.items():
+        if name in ("light", "dark"):
+            shades = [
+                mix_hex(color, c["base"], 0.0),
+                mix_hex(color, c["base"], 0.25),
+                color,
+                mix_hex(color, c["ink"], 0.25),
+                mix_hex(color, c["ink"], 0.5),
+            ]
+        elif light:
+            shades = [
+                mix_hex(color, c["base"], 0.5),
+                mix_hex(color, c["base"], 0.25),
+                color,
+                mix_hex(color, "#000000", 0.2),
+                mix_hex(color, "#000000", 0.4),
+            ]
+        else:
+            shades = [
+                mix_hex(color, c["ink"], 0.5),
+                mix_hex(color, c["ink"], 0.25),
+                color,
+                mix_hex(color, c["base"], 0.2),
+                mix_hex(color, c["base"], 0.4),
+            ]
+        for number, shade in enumerate(shades, 1):
+            result[f"--{name}-{number}"] = shade
+    return result
+
+
+def qt_color(value: str, fallback: str = "#ff000000") -> str:
+    """Return a Qt #AARRGGBB palette value from Kuro hex colors."""
+    text = str(value).strip().lower()
+    if text.startswith("0x") and len(text) == 10:
+        return "#" + text[2:]
+    if text.startswith("#"):
+        text = text[1:]
+    if len(text) == 6 and re.fullmatch(r"[0-9a-f]{6}", text):
+        return "#ff" + text
+    if len(text) == 8 and re.fullmatch(r"[0-9a-f]{8}", text):
+        return "#" + text[6:8] + text[:6]
+    return fallback
+
+
+def render_toolkit_gtk(cfg: dict, gtk_major: int) -> str:
+    """Generate a GTK user stylesheet with Kuro colors and toolkit font."""
+    c = cfg["colors"]
+    toolkit = cfg["toolkit"]
+    shell_font = cfg["fonts"]["shell_font"]
+    css = [
+        "/* Generated by kurogen; edit [toolkit] and the active Kuro theme. */",
+    ]
+    if toolkit["inherit_theme"]:
+        if gtk_major == 3:
+            base, text = c["base"], c["ink"]
+            css.extend([
+                f"@define-color theme_bg_color {base};",
+                f"@define-color theme_fg_color {text};",
+                f"@define-color theme_base_color {base};",
+                f"@define-color theme_text_color {text};",
+                f"@define-color theme_selected_bg_color {c['accent']};",
+                f"@define-color theme_selected_fg_color {c['accent_text']};",
+                f"@define-color insensitive_fg_color {c['muted']};",
+                f"@define-color borders {c['inactive_border']};",
+            ])
+        else:
+            base, text = c["base"], c["ink"]
+            accent, accent_text = c["accent"], c["accent_text"]
+            surface, muted = c["palette"][0], c["muted"]
+            variables = {
+                "--accent-bg-color": accent,
+                "--accent-fg-color": accent_text,
+                "--accent-color": accent,
+                "--destructive-bg-color": c["hot"],
+                "--destructive-fg-color": accent_text,
+                "--destructive-color": c["palette"][9],
+                "--success-bg-color": c["green"],
+                "--success-fg-color": c["base"],
+                "--success-color": c["green"],
+                "--warning-bg-color": c["yellow"],
+                "--warning-fg-color": c["base"],
+                "--warning-color": c["yellow"],
+                "--error-bg-color": c["hot"],
+                "--error-fg-color": accent_text,
+                "--error-color": c["palette"][9],
+                "--window-bg-color": base,
+                "--window-fg-color": text,
+                "--view-bg-color": base,
+                "--view-fg-color": text,
+                "--headerbar-bg-color": surface,
+                "--headerbar-fg-color": text,
+                "--headerbar-border-color": c["inactive_border"],
+                "--headerbar-backdrop-color": base,
+                "--headerbar-shade-color": "rgba(0, 0, 0, 0.28)",
+                "--headerbar-darker-shade-color": "rgba(0, 0, 0, 0.62)",
+                "--sidebar-bg-color": surface,
+                "--sidebar-fg-color": text,
+                "--sidebar-backdrop-color": base,
+                "--sidebar-border-color": c["inactive_border"],
+                "--sidebar-shade-color": "rgba(0, 0, 0, 0.28)",
+                "--secondary-sidebar-bg-color": c["base"],
+                "--secondary-sidebar-fg-color": text,
+                "--secondary-sidebar-backdrop-color": base,
+                "--secondary-sidebar-border-color": c["inactive_border"],
+                "--secondary-sidebar-shade-color": "rgba(0, 0, 0, 0.3)",
+                "--card-bg-color": surface,
+                "--card-fg-color": text,
+                "--card-shade-color": "rgba(0, 0, 0, 0.25)",
+                "--overview-bg-color": c["base"],
+                "--overview-fg-color": text,
+                "--thumbnail-bg-color": surface,
+                "--thumbnail-fg-color": text,
+                "--active-toggle-bg-color": accent,
+                "--active-toggle-fg-color": accent_text,
+                "--dialog-bg-color": surface,
+                "--dialog-fg-color": text,
+                "--popover-bg-color": surface,
+                "--popover-fg-color": text,
+                "--popover-shade-color": "rgba(0, 0, 0, 0.3)",
+                "--shade-color": "rgba(0, 0, 0, 0.25)",
+                "--scrollbar-outline-color": c["ink"] if cfg.get("mode") == "dark" else c["base"],
+                "--document-font-family": css_quote(toolkit["font"]),
+                "--document-font-size": f"{toolkit['size']}pt",
+                "--monospace-font-family": css_quote(shell_font),
+                "--monospace-font-size": "11pt",
+                "--accent-blue": c["blue"],
+                "--accent-teal": c["cyan"],
+                "--accent-green": c["green"],
+                "--accent-yellow": c["yellow"],
+                "--accent-orange": c["orange"],
+                "--accent-red": c["red"],
+                "--accent-pink": c["magenta"],
+                "--accent-purple": c["magenta"],
+                "--accent-slate": c["muted"],
+            }
+            variables.update(libadwaita_palette(cfg))
+            css.append(":root {")
+            css.extend(f"  {name}: {value};" for name, value in variables.items())
+            css.append("}")
+            # Older GTK/libadwaita apps still use these GTK named colors.
+            css.extend([
+                f"@define-color theme_bg_color {base};",
+                f"@define-color theme_fg_color {text};",
+                f"@define-color theme_base_color {base};",
+                f"@define-color theme_text_color {text};",
+                f"@define-color theme_selected_bg_color {accent};",
+                f"@define-color theme_selected_fg_color {accent_text};",
+                f"@define-color insensitive_bg_color {surface};",
+                f"@define-color insensitive_fg_color {muted};",
+                f"@define-color insensitive_base_color {base};",
+                f"@define-color borders {c['inactive_border']};",
+                f"@define-color theme_unfocused_bg_color {base};",
+                f"@define-color theme_unfocused_fg_color {text};",
+                f"@define-color theme_unfocused_base_color {base};",
+                f"@define-color theme_unfocused_text_color {text};",
+                f"@define-color theme_unfocused_selected_bg_color {accent};",
+                f"@define-color theme_unfocused_selected_fg_color {accent_text};",
+                f"@define-color unfocused_insensitive_color {muted};",
+                f"@define-color unfocused_borders {c['inactive_border']};",
+            ])
+            css.extend([
+                f"window, dialog {{ background-color: {base}; color: {text}; }}",
+                f"view, textview, entry {{ background-color: {base}; color: {text}; }}",
+                f"*:disabled {{ color: {muted}; }}",
+            ])
+    return "\n".join(css) + "\n"
+
+
+def qt_color_groups(cfg: dict) -> dict[str, list[str]]:
+    c = cfg["colors"]
+    palette = c["palette"]
+    accent = c["accent"]
+    accent_text = c["accent_text"]
+    active = [
+        c["ink"], palette[8], palette[15], palette[8], c["base"], palette[8],
+        c["ink"], palette[15], c["ink"], c["base"], c["base"], c["base"],
+        accent, accent_text, c["blue"], c["magenta"], palette[0], c["ink"],
+        palette[0], c["ink"], c["muted"], accent,
+    ]
+    inactive = [
+        c["muted"], palette[8], palette[15], palette[8], c["base"], palette[8],
+        c["muted"], palette[15], c["muted"], c["base"], c["base"], c["base"],
+        accent, accent_text, c["blue"], c["magenta"], palette[0], c["muted"],
+        palette[0], c["muted"], c["muted"], accent,
+    ]
+    disabled = [
+        c["muted"], palette[0], palette[8], palette[0], c["base"], palette[0],
+        c["muted"], palette[8], c["muted"], c["base"], c["base"], c["base"],
+        palette[8], c["muted"], c["blue"], c["magenta"], palette[0], c["muted"],
+        palette[0], c["muted"], c["muted"], palette[8],
+    ]
+    return {
+        "active_colors": active,
+        "inactive_colors": inactive,
+        "disabled_colors": disabled,
+    }
+
+
+def render_toolkit_qt_colors(cfg: dict) -> str:
+    groups = qt_color_groups(cfg)
+    lines = ["[ColorScheme]"]
+    for name, values in groups.items():
+        lines.append(f"{name}=" + ", ".join(qt_color(value) for value in values))
     return "\n".join(lines) + "\n"
+
+
+def render_toolkit_qt_config(cfg: dict, qt_major: int, colors_path: Path) -> str:
+    toolkit = cfg["toolkit"]
+    inherited = toolkit["inherit_theme"]
+    font = toolkit["font"].replace("\\", "\\\\").replace('"', '\\"')
+    scheme_path = str(colors_path) if inherited else ""
+    return (
+        "[Appearance]\n"
+        f"custom_palette={'true' if inherited else 'false'}\n"
+        f"color_scheme_path={scheme_path}\n"
+        "standard_dialogs=default\n"
+        "style=Fusion\n\n"
+        "[Fonts]\n"
+        f'general="{font},{toolkit["size"]},-1,5,50,0,0,0,0,0"\n'
+        f'fixed="{font},{toolkit["size"]},-1,5,50,0,0,0,0,0"\n'
+    )
+
+
+def render_neovim_theme(cfg: dict) -> str:
+    """Render a Neovim colorscheme from Kuro's active semantic palette."""
+    c, p = cfg["colors"], cfg["colors"]["palette"]
+    groups = {
+        "Normal": {"fg": c["ink"], "bg": c["base"]},
+        "NormalFloat": {"fg": c["ink"], "bg": p[0]},
+        "FloatBorder": {"fg": c["muted"], "bg": p[0]},
+        "Cursor": {"fg": c["cursor_text"], "bg": c["cursor"]},
+        "CursorLine": {"bg": p[0]},
+        "LineNr": {"fg": c["muted"]},
+        "CursorLineNr": {"fg": c["accent"], "bold": True},
+        "Visual": {"fg": c["selection_foreground"], "bg": c["selection_background"]},
+        "Search": {"fg": c["selection_foreground"], "bg": c["selection_background"]},
+        "IncSearch": {"fg": c["cursor_text"], "bg": c["cursor"]},
+        "Pmenu": {"fg": c["ink"], "bg": p[0]},
+        "PmenuSel": {"fg": c["accent_text"], "bg": c["accent"], "bold": True},
+        "StatusLine": {"fg": c["accent_text"], "bg": c["accent"], "bold": True},
+        "StatusLineNC": {"fg": c["muted"], "bg": p[0]},
+        "WinSeparator": {"fg": c["inactive_border"]},
+        "Comment": {"fg": c["muted"], "italic": True},
+        "String": {"fg": p[2]},
+        "Character": {"fg": p[2]},
+        "Number": {"fg": p[3]},
+        "Boolean": {"fg": p[3]},
+        "Constant": {"fg": p[3]},
+        "Identifier": {"fg": c["ink"]},
+        "Function": {"fg": p[4]},
+        "Statement": {"fg": c["accent"], "bold": True},
+        "Conditional": {"fg": c["accent"], "bold": True},
+        "Repeat": {"fg": c["accent"], "bold": True},
+        "Operator": {"fg": c["muted"]},
+        "Keyword": {"fg": c["accent"], "bold": True},
+        "PreProc": {"fg": p[5]},
+        "Type": {"fg": p[6]},
+        "Special": {"fg": p[4]},
+        "Todo": {"fg": c["cursor_text"], "bg": c["cursor"], "bold": True},
+        "DiagnosticError": {"fg": c["hot"]},
+        "DiagnosticWarn": {"fg": c["yellow"]},
+        "DiagnosticInfo": {"fg": c["blue"]},
+        "DiagnosticHint": {"fg": c["cyan"]},
+        "DiffAdd": {"fg": c["green"]},
+        "DiffDelete": {"fg": c["hot"]},
+        "DiffChange": {"fg": c["yellow"]},
+        "GitSignsAdd": {"fg": c["green"]},
+        "GitSignsChange": {"fg": c["yellow"]},
+        "GitSignsDelete": {"fg": c["hot"]},
+    }
+    lines = [
+        "-- Generated by kurogen from the active Kuro palette.",
+        "vim.cmd('highlight clear')",
+        "if vim.fn.exists('syntax_on') == 1 then vim.cmd('syntax reset') end",
+        "vim.g.colors_name = 'kuro'",
+        "local groups = {",
+    ]
+    for name, style in groups.items():
+        attrs = ", ".join(f"{key} = {json.dumps(value)}" for key, value in style.items())
+        lines.append(f"  {name} = {{ {attrs} }},")
+    lines.extend([
+        "}",
+        "for name, opts in pairs(groups) do vim.api.nvim_set_hl(0, name, opts) end",
+        "",
+    ])
+    return "\n".join(lines)
 
 
 def render_zsh_colors(cfg: dict) -> str:
@@ -582,99 +979,6 @@ def render_flea_shell(cfg: dict) -> str:
     )
 
 
-def render_hypr_lua(cfg: dict) -> str:
-    c, t, f, h = cfg["colors"], cfg["theme"], cfg["fonts"], cfg["hypr"]
-
-    lines = [
-        "-- Generated by kurogen from ~/.config/kuro/kuro.toml.",
-        "-- Do not edit by hand: change kuro.toml and run `kurogen`.",
-        "",
-        "-- Values exposed for other Hyprland config files.",
-        "kuro = {",
-        f"    layout = {lua(h['layout'])},",
-        "    apps = {",
-        f"        terminal    = {lua(cfg['apps']['terminal'])},",
-        f"        fileManager = {lua(cfg['apps']['file_manager'])},",
-        f"        menu        = {lua(cfg['apps']['menu'])},",
-        "    },",
-        "    fonts = {",
-        f"        ui       = {lua(f['ui_family'])},",
-        f"        uiSize   = {lua(f['ui_size'])},",
-        f"        iconSize = {lua(f['icon_size'])},",
-        f"        terminal = {lua(f['terminal_family'])},",
-        f"        terminalSize = {lua(f['terminal_size'])},",
-        "    },",
-        "    colors = {",
-        f"        base   = {lua(c['base'])},",
-        f"        ink    = {lua(c['ink'])},",
-        f"        accent = {lua(c['accent'])},",
-        "    },",
-        "    theme = {",
-        f"        barHeight = {lua(t['bar_height'])},",
-        f"        popupGap  = {lua(t['popup_gap'])},",
-        f"        radius    = {lua(t['radius'])},",
-        "    },",
-        "}",
-        "",
-        "hl.config({",
-        "    general = {",
-        f"        gaps_in = {lua(t['gaps_in'])},",
-        f"        gaps_out = {lua(t['gaps_out'])},",
-        f"        border_size = {lua(t['border_size'])},",
-        "        col = {",
-        f"            active_border = {lua(hex_rgba(c['active_border']))},",
-        f"            inactive_border = {lua(hex_rgba(c['inactive_border']))},",
-        "        },",
-        "        resize_on_border = false,",
-        f"        layout = {lua(h['layout'])},",
-        "    },",
-        "",
-        "    decoration = {",
-        f"        rounding = {lua(t['rounding'])},",
-        f"        rounding_power = {lua(h['rounding_power'])},",
-        f"        active_opacity = {lua(t['active_opacity'])},",
-        f"        inactive_opacity = {lua(t['inactive_opacity'])},",
-        "        shadow = {",
-        f"            enabled = {lua(t['shadow'])},",
-        f"            range = {lua(t['shadow_range'])},",
-        f"            render_power = {lua(t['shadow_power'])},",
-        f"            color = {t['shadow_color']},",
-        "        },",
-        "        blur = {",
-        f"            enabled = {lua(t['blur'])},",
-        f"            size = {lua(h['blur_size'])},",
-        f"            passes = {lua(h['blur_passes'])},",
-        f"            vibrancy = {lua(h['blur_vibrancy'])},",
-        "        },",
-        "    },",
-        "",
-        "    misc = {",
-        f"        background_color = {hex_argb(c['base'])},",
-        "        force_default_wallpaper = -1,",
-        "        disable_hyprland_logo = true,",
-        "    },",
-        "",
-        "    layers = {",
-        "        allow_new_top_layers_over_existing_fullscreen = true,",
-        "    },",
-        "",
-        "    input = {",
-        f"        kb_layout = {lua(h['kb_layout'])},",
-        f"        kb_options = {lua(h['kb_options'])},",
-        f"        follow_mouse = {lua(h['follow_mouse'])},",
-        f"        mouse_refocus = {lua(h['mouse_refocus'])},",
-        "        sensitivity = 0,",
-        f"        touchpad = {{ natural_scroll = {lua(h['natural_scroll'])} }},",
-        "    },",
-        "",
-        f"    animations = {{ enabled = {lua(t['animations'])} }},",
-        "    dwindle = { preserve_split = true },",
-        "})",
-        "",
-    ]
-    return "\n".join(lines)
-
-
 def render_kitty_conf(cfg: dict) -> str:
     c, f, t = cfg["colors"], cfg["fonts"], cfg["theme"]
     term = cfg["terminal"]
@@ -682,7 +986,7 @@ def render_kitty_conf(cfg: dict) -> str:
         "# Generated by kurogen from ~/.config/kuro/kuro.toml.",
         "# Do not edit by hand: change kuro.toml and run `kurogen`.",
         "",
-        f"font_family      {f['terminal_family']}",
+        f"font_family      {f['shell_font']}",
         "bold_font        auto",
         "italic_font      auto",
         "bold_italic_font auto",
@@ -729,14 +1033,25 @@ def generate(cfg: dict) -> list[str]:
     #     changed.append(str(FLEA_COLORS))
     # if write_if_changed(FLEA_SHELL, render_flea_shell(cfg)):
     #     changed.append(str(FLEA_SHELL))
-    # if write_if_changed(FLEA_FONT_FAMILY, str(cfg["fonts"]["ui_family"]) + "\n"):
+    # if write_if_changed(FLEA_FONT_FAMILY, str(cfg["fonts"]["shell_font"]) + "\n"):
     #     changed.append(str(FLEA_FONT_FAMILY))
-    if write_if_changed(HYPR_LUA, render_hypr_lua(cfg)):
-        changed.append(str(HYPR_LUA))
+    if write_if_changed(NIRI_KDL, render_niri_kdl(cfg)):
+        changed.append(str(NIRI_KDL))
     if write_if_changed(KITTY_CONF, render_kitty_conf(cfg)):
         changed.append(str(KITTY_CONF))
-    if write_if_changed(HELIX_THEME, render_helix_theme(cfg)):
-        changed.append(str(HELIX_THEME))
+    if write_if_changed(NVIM_THEME, render_neovim_theme(cfg)):
+        changed.append(str(NVIM_THEME))
+    for path, major in ((GTK3_CSS, 3), (GTK4_CSS, 4)):
+        if write_if_changed(path, render_toolkit_gtk(cfg, major)):
+            changed.append(str(path))
+    for config_path, colors_path, major in (
+        (QT5_CONFIG, QT5_COLORS, 5),
+        (QT6_CONFIG, QT6_COLORS, 6),
+    ):
+        if cfg["toolkit"]["inherit_theme"] and write_if_changed(colors_path, render_toolkit_qt_colors(cfg)):
+            changed.append(str(colors_path))
+        if write_if_changed(config_path, render_toolkit_qt_config(cfg, major, colors_path)):
+            changed.append(str(config_path))
     return changed
 
 
@@ -843,6 +1158,52 @@ def set_value(dotted: str, raw: str) -> None:
     set_values([(dotted, raw)])
 
 
+def add_window_rule(title: str, directives: list[str]) -> None:
+    """Add Niri KDL rule directives for an exact window-title match."""
+    if not title.strip():
+        raise KuroError("window title cannot be empty")
+    if not directives or any(not directive.strip() for directive in directives):
+        raise KuroError("provide at least one non-empty Niri rule directive")
+
+    cfg = load()
+    existing = cfg["rules"].get(title, [])
+    if not isinstance(existing, list):
+        raise KuroError(f"rules.{title} is not a list of Niri rule directives")
+    updated_rules = existing + directives
+
+    text = CONFIG.read_text(encoding="utf-8")
+    lines = text.splitlines()
+    header = "[rules]"
+    start = next((i for i, line in enumerate(lines) if line.strip() == header), None)
+    if start is None:
+        if lines and lines[-1].strip():
+            lines.append("")
+        lines.extend([header, "# Per-window Niri rules are added with `kurogen window`."])
+        start = len(lines) - 2
+
+    end = len(lines)
+    for i in range(start + 1, len(lines)):
+        if lines[i].lstrip().startswith("["):
+            end = i
+            break
+
+    key = json.dumps(title, ensure_ascii=False)
+    key_pattern = re.compile(rf"^\s*{re.escape(key)}\s*=")
+    target = next((i for i in range(start + 1, end) if key_pattern.match(lines[i])), None)
+    assignment = f"{key} = {toml_value(updated_rules)}"
+    if target is not None:
+        lines[target] = assignment
+    else:
+        lines.insert(end, assignment)
+
+    updated = "\n".join(lines) + ("\n" if text.endswith("\n") or not text else "")
+    try:
+        tomllib.loads(updated)
+    except tomllib.TOMLDecodeError as exc:
+        raise KuroError(f"window rule would produce invalid TOML: {exc}")
+    CONFIG.write_text(updated, encoding="utf-8")
+
+
 # ── entry point ──────────────────────────────────────────────────────
 def main(argv: list[str]) -> int:
     try:
@@ -866,6 +1227,10 @@ def main(argv: list[str]) -> int:
                     "usage: kurogen set <section.key> <value> "
                     "[<section.key> <value> ...]")
             set_values(list(zip(rest[0::2], rest[1::2])))
+        elif len(argv) > 1 and argv[1] == "window":
+            if len(argv) < 4:
+                raise KuroError('usage: kurogen window "<title>" "<Niri rule>" ["<Niri rule>" ...]')
+            add_window_rule(argv[2], argv[3:])
         elif len(argv) > 1 and argv[1] not in ("generate", "apply"):
             raise KuroError(f"unknown command: {argv[1]}")
 

@@ -1,7 +1,6 @@
 { pkgs, ... }:
 {
-  programs.zsh.enable = true;   # required for a zsh login shell
-
+  programs.zsh.enable = true;
   # Password is the one set during installation (or change with `passwd`).
   users.users.atharva = {
     isNormalUser = true;

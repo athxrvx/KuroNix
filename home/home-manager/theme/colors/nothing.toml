@@ -1,0 +1,47 @@
+name = "Nothing"
+mode = "dark"
+
+# Nothing OS palette: off-white, pure black, industrial grey, and signature red.
+accent = "#E51B23"
+selection = "#302020"
+muted = "#A3A3A3"
+
+# Background used by Kuro Shell.
+background = "#000000"
+# darker_background is used by GTK, Qt, Kitty, and other apps.
+dark_background = "#000000"
+darker_background = "#000000"
+lighter_background = "#252525"
+
+foreground = "#F5F5F5"
+dark_foreground = "#A3A3A3"
+light_foreground = "#D8D8D8"
+bright_foreground = "#FFFFFF"
+
+red = "#E53935"
+orange = "#FF8A35"
+yellow = "#F9D648"
+green = "#45C978"
+cyan = "#36C9D5"
+blue = "#438BEB"
+magenta = "#9870E8"
+brown = "#A3A3A3"
+
+bright_red = "#E51B23"
+bright_yellow = "#F9D648"
+bright_green = "#C5E64A"
+bright_cyan = "#36C9D5"
+bright_blue = "#438BEB"
+bright_magenta = "#F06292"
+
+accent_text = "#F5F5F5"
+selection_foreground = "#F5F5F5"
+cursor = "#E51B23"
+cursor_text = "#FFFFFF"
+url = "#438BEB"
+inactive_border = "#A3A3A388"
+active_border_color = "#E51B23"
+active_tab_background = "#E51B23"
+tab_active_foreground = "#FFFFFF"
+tab_inactive_background = "#252525"
+tab_inactive_foreground = "#A3A3A3"

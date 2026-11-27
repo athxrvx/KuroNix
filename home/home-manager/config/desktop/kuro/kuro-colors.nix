@@ -8,7 +8,7 @@ let
 in
 {
   base00 = theme.background;
-  base01 = theme.dark_background;
+  base01 = theme.darker_background;
   base02 = theme.lighter_background;
   base03 = theme.muted;
   base04 = theme.muted;
@@ -24,6 +24,6 @@ in
   base0E = theme.magenta;
   base0F = theme.brown;
 
-  uiFont = settings.fonts.ui_family;
-  monoFont = settings.fonts.terminal_family;
+  uiFont = settings.fonts.shell_font;
+  monoFont = settings.fonts.shell_font;
 }

@@ -20,7 +20,8 @@ Global options:
   -h, --help            Show this help
 
 Build and activate:
-  sync, switch, s [PROFILE]  Build and activate the system and Home Manager
+  sync [PROFILE]             Build and activate NixOS and Home Manager
+  switch, s [PROFILE]        Build and activate the NixOS system only
   boot, bt [PROFILE]         Build and set as default for next boot (no live switch)
   home [PROFILE]             Build and activate Home Manager only
   build, b [PROFILE]         Build without activating
@@ -122,8 +123,11 @@ impl App {
 
     // A labelled section with a short supporting footer.
     fn section(&self, title: &str) {
-        println!();
-        println!("  {}", self.bold(title));
+        if self.color {
+            println!("\n{}", self.bright_cyan(title));
+        } else {
+            println!("\n== {title} ==");
+        }
     }
     fn section_end(&self, detail: &str) {
         println!("  {}\n", self.dim(detail));
@@ -277,6 +281,36 @@ impl App {
         output.finish(success, &message);
         self.notify_task(label, success, seconds);
         TaskResult { success, code, stdout: stdout_text }
+    }
+
+    fn activate_home(&mut self, target: &str, show_header: bool) {
+        let attr = format!(
+            "nixosConfigurations.{target}.config.home-manager.users.{}.home.activationPackage",
+            self.options.user
+        );
+        let flake_ref = self.flake_ref();
+        let installable = format!("{flake_ref}#{attr}");
+        let build = os_args(&["nix", "build", &installable, "--no-link", "--print-out-paths"]);
+        if show_header {
+            self.header("home", &format!("build Home Manager for {target}"));
+        }
+        if self.options.dry_run {
+            self.run(&build);
+            println!("+ activate the resulting Home Manager package as the current user");
+            return;
+        }
+
+        let build_result = self.run_task(&build, "Home Manager build");
+        if !build_result.success { process::exit(build_result.code); }
+        let activation = build_result.stdout.lines().rev()
+            .find(|line| line.starts_with("/nix/store/"))
+            .unwrap_or(build_result.stdout.trim())
+            .trim()
+            .to_string();
+        let script = Path::new(&activation).join("activate");
+        if !script.is_file() { self.fail(format!("Home Manager activation script missing from {activation}")); }
+        let activate_result = self.run_task(&[script.into_os_string()], "Home activation");
+        if !activate_result.success { process::exit(activate_result.code); }
     }
 
     fn notify_task(&self, label: &str, success: bool, seconds: u64) {
@@ -484,11 +518,26 @@ impl App {
                 let (_, keep) = parse_clean_args(self, &args[1..], "kuro system clean [--keep COUNT]");
                 self.delete_generations("system", keep);
             }
-            "sync" | "switch" | "s" => {
+            "sync" => {
                 if args.len() > 1 { self.fail(format!("usage: kuro {command} [PROFILE]")); }
                 let target = args.first().and_then(|s| s.to_str()).unwrap_or(&self.options.profile).to_string();
                 self.profile(&target);
-                self.header(command, &format!("switch profile {target} (rebuild and activate)"));
+                self.header(command, &format!("switch profile {target} (NixOS + Home Manager)"));
+                let flake_ref = self.flake_ref();
+                self.section("1/2 · NixOS system");
+                let system_switch = self.run_task(
+                    &["sudo".into(), "nixos-rebuild".into(), "switch".into(), "--flake".into(), format!("{flake_ref}#{target}").into()],
+                    "System switch",
+                );
+                if !system_switch.success { process::exit(system_switch.code); }
+                self.section("2/2 · Home Manager");
+                self.activate_home(&target, false);
+            }
+            "switch" | "s" => {
+                if args.len() > 1 { self.fail(format!("usage: kuro {command} [PROFILE]")); }
+                let target = args.first().and_then(|s| s.to_str()).unwrap_or(&self.options.profile).to_string();
+                self.profile(&target);
+                self.header(command, &format!("switch system profile {target}"));
                 let flake_ref = self.flake_ref();
                 self.command_task(&["sudo".into(), "nixos-rebuild".into(), "switch".into(), "--flake".into(), format!("{flake_ref}#{target}").into()], "System switch");
             }
@@ -520,23 +569,7 @@ impl App {
                 if args.len() > 1 { self.fail("usage: kuro home [PROFILE]"); }
                 let target = args.first().and_then(|s| s.to_str()).unwrap_or(&self.options.profile).to_string();
                 self.profile(&target);
-                let attr = format!("nixosConfigurations.{target}.config.home-manager.users.{}.home.activationPackage", self.options.user);
-                let flake_ref = self.flake_ref();
-                let installable = format!("{flake_ref}#{attr}");
-                let build = os_args(&["nix", "build", &installable, "--no-link", "--print-out-paths"]);
-                self.header("home", &format!("build Home Manager for {target}"));
-                if self.options.dry_run {
-                    self.run(&build);
-                    println!("+ activate the resulting Home Manager package as the current user");
-                } else {
-                    let build_result = self.run_task(&build, "Home Manager build");
-                    if !build_result.success { process::exit(build_result.code); }
-                    let activation = build_result.stdout.lines().rev().find(|l| l.starts_with("/nix/store/")).unwrap_or(build_result.stdout.trim()).trim().to_string();
-                    let script = Path::new(&activation).join("activate");
-                    if !script.is_file() { self.fail(format!("Home Manager activation script missing from {activation}")); }
-                    let activate_result = self.run_task(&[script.into_os_string()], "Home activation");
-                    if !activate_result.success { process::exit(activate_result.code); }
-                }
+                self.activate_home(&target, true);
             }
             "jump" => self.jump(args),
             "try" => {
@@ -567,14 +600,14 @@ impl App {
             }
             "edit" => {
                 if args.len() > 1 { self.fail("usage: kuro edit [FILE]"); }
-                let editor = env::var("EDITOR").or_else(|_| env::var("VISUAL")).unwrap_or_else(|_| "hx".into());
+                let editor = env::var("EDITOR").or_else(|_| env::var("VISUAL")).unwrap_or_else(|_| "nvim".into());
                 let target = args.first().and_then(|s| s.to_str()).unwrap_or("flake.nix");
                 let target = PathBuf::from(target);
                 let target = if target.is_absolute() { target } else { self.require_flake().join(target) };
                 if !target.exists() { self.fail(format!("file not found: {}", target.display())); }
                 let description = format!("open {}", target.display());
                 let mut editor_parts = editor.split_whitespace();
-                let editor_bin = editor_parts.next().unwrap_or("hx");
+                let editor_bin = editor_parts.next().unwrap_or("nvim");
                 let mut editor_args: Vec<OsString> = editor_parts.map(Into::into).collect(); editor_args.push(target.into_os_string());
                 let mut all = vec![OsString::from(editor_bin)]; all.extend_from_slice(&editor_args);
                 self.handoff("edit", &description, &all);

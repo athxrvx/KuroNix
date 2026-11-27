@@ -5,9 +5,11 @@ accent = "#8a694c"
 selection = "#fad07a"
 muted = "#888888"
 
+# Background used by Kuro Shell.
 background = "#0d0d0d"
+# darker_background is used by GTK, Qt, Kitty, and other apps.
 dark_background = "#151515"
-darker_background = "#0d0d0d"
+darker_background = "#080808"
 lighter_background = "#303030"
 
 foreground = "#dedede"
@@ -38,8 +40,8 @@ url = "#97bedc"
 inactive_border = "#111111"
 
 # Complete Kuro semantic color contract.
-accent_text = "#ffffff"
-selection_foreground = "#dedede"
+accent_text = "#0d0d0d"
+selection_foreground = "#0d0d0d"
 active_border_color = "#8a694c"
 active_tab_background = "#8a694c"
 tab_active_foreground = "#ffffff"

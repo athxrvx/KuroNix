@@ -1,16 +1,12 @@
--- Hyprland entry point. Settings are grouped in conf.d; Kuro owns appearance
--- and input values generated from ~/.config/kuro/kuro.toml.
+-- Retained Hyprland configuration. Niri is the active desktop profile.
 local home = os.getenv("HOME") or ""
 local configDir = home .. "/.config/hypr"
 local modulesDir = configDir .. "/conf.d"
 
--- Load generated colors, app choices, appearance and input options first.
-pcall(require, "kuro")
-
 local apps = {
-    terminal = (kuro and kuro.apps and kuro.apps.terminal) or "kitty",
-    fileManager = (kuro and kuro.apps and kuro.apps.fileManager) or "dolphin",
-    menu = (kuro and kuro.apps and kuro.apps.menu) or "qs -c shell ipc call launcher toggle",
+    terminal = "kitty",
+    fileManager = "nautilus",
+    menu = "qs -c shell ipc call launcher toggle",
     barLayout = home .. "/.local/bin/bar-layout",
 }
 

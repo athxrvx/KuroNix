@@ -78,21 +78,9 @@
   services.udisks2.enable = true;
   services.libinput.enable = true;
 
-  # Thunar, with persistent Xfconf settings, archive/media/VCS extensions,
-  # and thumbnail support for video, PDF, and WebP files.
-  programs.thunar = {
-    enable = true;
-    plugins = with pkgs; [
-      thunar-archive-plugin
-      thunar-volman
-      thunar-media-tags-plugin
-      thunar-vcs-plugin
-    ];
-  };
-  programs.xfconf.enable = true;
-  services.tumbler.enable = true;
   programs.gdk-pixbuf.modulePackages = [ pkgs.webp-pixbuf-loader ];
   environment.systemPackages = with pkgs; [
+    nautilus
     file-roller
     ffmpegthumbnailer
     poppler

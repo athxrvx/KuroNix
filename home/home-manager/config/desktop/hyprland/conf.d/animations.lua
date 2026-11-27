@@ -1,5 +1,5 @@
 return function()
-    local defaultWorkspaceStyle = kuro and kuro.layout == "scrolling" and "slidevert" or "slide"
+    local defaultWorkspaceStyle = "slide"
     hl.curve("easeOutQuint", { type = "bezier", points = { {0.23, 1}, {0.32, 1} } })
 
     hl.animation({ leaf = "windows",          enabled = true, speed = 4, bezier = "easeOutQuint", style = "slide" })

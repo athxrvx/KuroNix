@@ -26,6 +26,7 @@ in
     ../../modules/system/network.nix
     ../../modules/optimizations/optimize.nix
     ../../modules/power/laptop.nix
+    ../../modules/gaming/steam.nix
   ];
 
   services.flatpak.enable = true;
@@ -60,7 +61,9 @@ in
   boot.kernelPackages = pkgs.linuxPackages_latest;
   # Use the existing swap partition to resume hibernated sessions.
   boot.initrd.luks.devices."luks-5b8facdc-515d-447d-96e7-c348bc719633".device = "/dev/disk/by-uuid/5b8facdc-515d-447d-96e7-c348bc719633";
-  boot.resumeDevice = "/dev/disk/by-uuid/5b8facdc-515d-447d-96e7-c348bc719633";
+  # Resume must point at the unlocked mapper, matching swapDevices in
+  # hardware-configuration.nix, rather than the raw LUKS container.
+  boot.resumeDevice = "/dev/mapper/luks-5b8facdc-515d-447d-96e7-c348bc719633";
   # Fallback boot entry on the stable kernel, for when a new kernel breaks
   # the NVIDIA module. Pick "lts" in the boot menu.
   specialisation.lts.configuration = {

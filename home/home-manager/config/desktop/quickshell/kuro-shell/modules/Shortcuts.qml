@@ -1,0 +1,190 @@
+import qs.components.misc
+import qs.modules.controlcenter
+import qs.services
+import qs.config
+import qs.modules.music
+import KuroShell
+import Quickshell
+import Quickshell.Io
+import QtQuick
+
+Scope {
+    id: root
+
+    property bool launcherInterrupted
+
+    Connections {
+        target: Config
+
+        function onConfigSaved(): void {
+            if (Config.utilities.toasts.configLoaded)
+                Toaster.toast(qsTr("Config saved"), qsTr("Configuration saved successfully"), "rule_settings");
+        }
+
+        function onConfigLoaded(elapsed: int): void {
+            if (Config.utilities.toasts.configLoaded)
+                Toaster.toast(qsTr("Config loaded"), qsTr("Config loaded in %1ms").arg(elapsed), "rule_settings");
+        }
+
+        function onConfigError(message: string): void {
+            Toaster.toast(qsTr("Config error"), message, "settings_alert", Toast.Error);
+        }
+    }
+
+    IpcHandler {
+        target: "launcher"
+
+        function utility(name: string): void {
+            const visibilities = Visibilities.getForActive();
+            const modes = ["calc", "scheme", "wallpaper", "clip", "web", "emoji", "distrobox"];
+            if (name === "actions") {
+                visibilities.launcherQuery = Config.launcher.actionPrefix;
+                visibilities.launcher = true;
+                return;
+            }
+            if (modes.includes(name)) {
+                visibilities.launcherQuery = `${Config.launcher.actionPrefix}${name} `;
+                visibilities.launcher = true;
+                return;
+            }
+
+            if (name === "ocr") {
+                visibilities.launcher = false;
+                Quickshell.execDetached(["qs", "-c", "shell", "ipc", "call", "picker", "regionOcr"]);
+            } else if (name === "settings") {
+                visibilities.launcher = false;
+                WindowFactory.create();
+            } else if (name === "random") {
+                visibilities.launcher = false;
+                const choices = Wallpapers.list;
+                if (choices.length > 0)
+                    Wallpapers.setWallpaper(choices[Math.floor(Math.random() * choices.length)].path);
+                else
+                    Toaster.toast(qsTr("No wallpapers found"), qsTr("Add wallpapers to your configured wallpaper folder first."), "wallpaper_slideshow", Toast.Warning);
+            } else if (name === "light" || name === "dark") {
+                Colours.setMode(name);
+                Schemes.regenerateDynamic();
+            } else {
+                console.warn(`[IPC] Unknown launcher utility: ${name}`);
+            }
+        }
+    }
+
+    IpcHandler {
+        target: "drawers"
+
+        function toggle(drawer: string): void {
+            if (drawer === "manga" && !Config.extra.manga) {
+                Toaster.toast(qsTr("Manga feature disabled"), qsTr("Enable it in the Control Center settings"), "manga", Toast.Warning)
+                return
+            }
+            if (drawer === "novel" && !Config.extra.novel) {
+                Toaster.toast(qsTr("Novel feature disabled"), qsTr("Enable it in the Control Center settings"), "book", Toast.Warning)
+                return
+            }
+
+            if (list().split("\n").includes(drawer)) {
+                const visibilities = Visibilities.getForActive();
+                visibilities[drawer] = !visibilities[drawer];
+            } else {
+                console.warn(`[IPC] Drawer "${drawer}" does not exist`);
+            }
+        }
+
+        function list(): string {
+            const visibilities = Visibilities.getForActive();
+            return Object.keys(visibilities).filter(k => typeof visibilities[k] === "boolean").join("\n");
+        }
+    }
+
+    IpcHandler {
+        target: "controlCenter"
+
+        function open(): void {
+            WindowFactory.create();
+        }
+    }
+
+    IpcHandler {
+        target: "music"
+
+        function open(): void {
+            MusicWindowFactory.create(null);
+        }
+    }
+
+    IpcHandler {
+        target: "toaster"
+
+        function info(title: string, message: string, icon: string): void {
+            Toaster.toast(title, message, icon, Toast.Info);
+        }
+
+        function success(title: string, message: string, icon: string): void {
+            Toaster.toast(title, message, icon, Toast.Success);
+        }
+
+        function warn(title: string, message: string, icon: string): void {
+            Toaster.toast(title, message, icon, Toast.Warning);
+        }
+
+        function error(title: string, message: string, icon: string): void {
+            Toaster.toast(title, message, icon, Toast.Error);
+        }
+    }
+
+    IpcHandler {
+        target: "clipboard"
+
+        function open(): void {
+            const visibilities = Visibilities.getForActive()
+            visibilities.clipboardRequested = true
+            visibilities.launcher = true
+        }
+
+        function close(): void {
+            const visibilities = Visibilities.getForActive()
+            visibilities.launcher = false
+        }
+
+        function toggle(): void {
+            const visibilities = Visibilities.getForActive()
+            if (visibilities.launcher) {
+                visibilities.launcher = false
+            } else {
+                visibilities.clipboardRequested = true
+                visibilities.launcher = true
+            }
+        }
+
+        function clear(): void {
+            Quickshell.execDetached(["cliphist", "wipe"]);
+            Quickshell.execDetached(["wl-copy", "--clear"]);
+            Toaster.toast(qsTr("Clipboard cleared"), qsTr("The clipboard history has been wiped."), "content_paste_off");
+        }
+    }
+
+    IpcHandler {
+        target: "mangaReader"
+        function toggle(): void {
+            if (!Config.extra.manga) {
+                Toaster.toast(qsTr("Manga feature disabled"), qsTr("Enable it in the Control Center settings"), "manga", Toast.Warning)
+                return
+            }
+            const visibilities = Visibilities.getForActive()
+            visibilities.manga = !visibilities.manga
+        }
+    }
+
+    IpcHandler {
+        target: "novelReader"
+        function toggle(): void {
+            if (!Config.extra.novel) {
+                Toaster.toast(qsTr("Novel feature disabled"), qsTr("Enable it in the Control Center settings"), "book", Toast.Warning)
+                return
+            }
+            const visibilities = Visibilities.getForActive()
+            visibilities.novel = !visibilities.novel
+        }
+    }
+}

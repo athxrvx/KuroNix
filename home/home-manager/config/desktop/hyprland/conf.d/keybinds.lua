@@ -1,5 +1,5 @@
 return function(apps)
-    local mod = "SUPER" -- Physical Alt key after kuro's xkb swap.
+    local mod = "SUPER"
     -- local home = os.getenv("HOME") or ""   -- only used by the disabled Flea binding
     local barLayout = apps.barLayout
 
@@ -44,11 +44,11 @@ return function(apps)
     hl.bind(mod .. " + B",                 hl.dsp.exec_cmd("qs -c shell ipc call sidebar toggle"))
     hl.bind(mod .. " + SHIFT + B",         hl.dsp.exec_cmd(barLayout .. " next"))
     hl.bind(mod .. " + M",                 hl.dsp.exec_cmd("hyprctl dispatch exit"))
-    -- Flea is disabled; use the file manager from kuro.toml for SUPER + F.
+    -- Flea is disabled; SUPER + F launches Nautilus.
     -- local fleaToggle = home .. "/.config/hypr/scripts/toggle-filemanager.sh"
     -- hl.bind(mod .. " + F",                 hl.dsp.exec_cmd(fleaToggle))
     -- hl.bind("ALT + F",                     hl.dsp.exec_cmd(fleaToggle))
-    hl.bind(mod .. " + F",                 hl.dsp.exec_cmd("thunar"))
+    hl.bind(mod .. " + F",                 hl.dsp.exec_cmd(apps.fileManager))
     hl.bind(mod .. " + W",                 hl.dsp.window.float({ action = "toggle" }))
     hl.bind(mod .. " + R",                 hl.dsp.exec_cmd(apps.menu))
     hl.bind(mod .. " + space",             hl.dsp.exec_cmd("qs -c shell ipc call launcher toggle"))

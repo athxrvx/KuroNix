@@ -6,8 +6,7 @@
     wget
     unzip
 
-    # CLI toolchains and the configured editor.
-    helix
+    # CLI toolchains; Neovim is installed through programs.neovim below.
     gcc
     gnumake
     pkg-config
@@ -47,6 +46,13 @@
   imports = [
     ../config/development/git.nix
     ../config/development/opencode.nix
-    ../config/development/helix/helix.nix
+    ../config/development/neovim/neovim.nix
   ];
+
+  programs.neovim = {
+    enable = true;
+    defaultEditor = true;
+    viAlias = true;
+    vimAlias = true;
+  };
 }
