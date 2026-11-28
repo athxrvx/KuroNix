@@ -22,14 +22,10 @@ CollapsibleSection {
     property string pendingSetting: ""
     property string pendingValue: ""
 
-    function setKuroFont(setting: string, value: string): void {
-        pendingSetting = setting;
-        pendingValue = value;
-        kurogen.running = true;
-    }
-
-    Process {
-        id: kurogen
+    // Declared as a named property so it stays on the section root instead of
+    // being routed into CollapsibleSection's default content component, where
+    // its id would be out of scope for setKuroFont().
+    property Process kurogen: Process {
         command: ["kurogen", "set", root.pendingSetting, root.pendingValue]
         onExited: (exitCode, exitStatus) => {
             if (exitCode === 0) {
@@ -39,6 +35,12 @@ CollapsibleSection {
             }
         }
         stderr: StdioCollector { id: kurogenError }
+    }
+
+    function setKuroFont(setting: string, value: string): void {
+        pendingSetting = setting;
+        pendingValue = value;
+        kurogen.running = true;
     }
 
     ColumnLayout {

@@ -25,6 +25,9 @@ in
     }
 
     layout {
+    	shadow {
+    	    offset x=0 y=0
+    	}
         gaps 8
         focus-ring {
             active-color "#8a694c"
@@ -38,7 +41,7 @@ in
         }
         default-column-width { proportion 0.5; }
     }
-
+	
     window-rule {
         geometry-corner-radius 15
         clip-to-geometry true
