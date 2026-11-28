@@ -57,6 +57,7 @@
     type = "Application";
     categories = [ "Development" "TextEditor" ];
     terminal = false;
+    noDisplay = true;
   };
   xdg.desktopEntries.ranger = {
     name = "ranger";

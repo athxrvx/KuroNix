@@ -157,7 +157,7 @@ Item {
 
                     readonly property var rootPane: sidebarFlickable.rootPane
 
-                    readonly property bool allSectionsExpanded: themeModeSection.expanded && colorVariantSection.expanded && colorSchemeSection.expanded && systemThemesSection.expanded && animationsSection.expanded && fontsSection.expanded && scalesSection.expanded && transparencySection.expanded && borderSection.expanded && backgroundSection.expanded
+                    readonly property bool allSectionsExpanded: themeModeSection.expanded && colorVariantSection.expanded && colorSchemeSection.expanded && animationsSection.expanded && fontsSection.expanded && scalesSection.expanded && transparencySection.expanded && borderSection.expanded && backgroundSection.expanded
 
                     RowLayout {
                         spacing: Appearance.spacing.md
@@ -180,7 +180,6 @@ Item {
                                 const shouldExpand = !sidebarLayout.allSectionsExpanded;
                                 themeModeSection.expanded = shouldExpand;
                                 colorSchemeSection.expanded = shouldExpand;
-                                systemThemesSection.expanded = shouldExpand;
                                 animationsSection.expanded = shouldExpand;
                                 fontsSection.expanded = shouldExpand;
                                 scalesSection.expanded = shouldExpand;
@@ -197,10 +196,6 @@ Item {
 
                     ColorSchemeSection {
                         id: colorSchemeSection
-                    }
-
-                    SystemThemesSection {
-                        id: systemThemesSection
                     }
 
                     AnimationsSection {

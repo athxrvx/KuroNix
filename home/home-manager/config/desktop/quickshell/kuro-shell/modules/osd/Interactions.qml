@@ -12,6 +12,11 @@ Scope {
     readonly property Brightness.Monitor monitor: Brightness.getMonitorForScreen(screen)
 
     function show(): void {
+        // Volume/brightness changes must not pop the OSD over the session panel or
+        // its confirmation prompt.
+        if (root.visibilities.session)
+            return;
+
         root.visibilities.osd = true;
         timer.restart();
     }

@@ -74,7 +74,9 @@ Item {
     Loader {
         id: content
 
-        Component.onCompleted: active = Qt.binding(() => root.visibilities.dashboard && Config.dashboard.enabled)
+        // Stay loaded while the close transition is still running, otherwise the content is
+        // destroyed before the height collapse finishes and the wrapper animates out blank.
+        active: (root.visibilities.dashboard && Config.dashboard.enabled) || root.visible
 
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom

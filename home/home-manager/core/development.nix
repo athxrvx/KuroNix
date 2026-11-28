@@ -46,7 +46,7 @@
   imports = [
     ../config/development/git.nix
     ../config/development/opencode.nix
-    ../config/development/neovim/neovim.nix
+    ../config/development/zed.nix
   ];
 
   programs.neovim = {

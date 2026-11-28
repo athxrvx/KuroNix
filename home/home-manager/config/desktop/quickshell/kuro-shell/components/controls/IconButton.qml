@@ -15,6 +15,7 @@ StyledRect {
     property alias icon: label.text
     property bool checked
     property bool toggle
+    property bool fillWhenInactive
     property real padding: type === IconButton.Text ? Appearance.padding.xs / 2 : Appearance.padding.sm
     property alias font: label.font
     property int type: IconButton.Filled
@@ -70,7 +71,7 @@ StyledRect {
 
         anchors.centerIn: parent
         color: root.disabled ? root.disabledOnColour : root.internalChecked ? root.activeOnColour : root.inactiveOnColour
-        fill: !root.toggle || root.internalChecked ? 1 : 0
+        fill: !root.toggle || root.internalChecked || root.fillWhenInactive ? 1 : 0
 
         Behavior on fill {
             Anim {}

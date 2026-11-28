@@ -22,7 +22,7 @@ in
     # mpv also serves the AI YouTube action; curl is used by AI tooling.
     mpv
     curl
-    mpc
+    mpMPVc
   ];
 
   services.mpd = {

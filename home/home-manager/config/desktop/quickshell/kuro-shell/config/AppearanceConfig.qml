@@ -5,7 +5,6 @@ JsonObject {
     property Spacing spacing: Spacing {}
     property Padding padding: Padding {}
     property FontStuff font: FontStuff {}
-    property string iconTheme: "Papirus-Dark"
     property Anim anim: Anim {}
     property Transparency transparency: Transparency {}
 

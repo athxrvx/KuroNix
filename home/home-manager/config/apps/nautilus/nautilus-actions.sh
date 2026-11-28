@@ -71,7 +71,7 @@ wallpaper_directory() {
   if [[ -f "$HOME/.cache/kuro/theme.json" ]]; then
     configured="$(jq -r '.apps.wallpaperDir // empty' "$HOME/.cache/kuro/theme.json")"
   fi
-  configured="${configured:-$HOME/Pictures/Wallpaper}"
+  configured="${configured:-$HOME/Pictures/Wallpapers}"
   case "$configured" in
     '~') configured="$HOME" ;;
     '~/'*) configured="$HOME/${configured#\~/}" ;;

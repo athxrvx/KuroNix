@@ -1,0 +1,51 @@
+name = "Solarized Obsidian"
+mode = "dark"
+
+accent = "#668ba5"
+selection = "#253b42"
+muted = "#657679"
+
+# Deep, almost-black Solarized backgrounds.
+background = "#080b0d"
+dark_background = "#111719"
+darker_background = "#050809"
+lighter_background = "#1b2528"
+
+# Soft, muted foregrounds.
+foreground = "#b8c4c5"
+dark_foreground = "#657679"
+light_foreground = "#cbd4d3"
+bright_foreground = "#e3e5d9"
+
+# Muted Solarized palette.
+red = "#b85c56"
+yellow = "#a58a4e"
+orange = "#b47750"
+green = "#82915a"
+cyan = "#568f89"
+blue = "#668ba5"
+magenta = "#a56d88"
+brown = "#8b7356"
+
+# Slightly brighter variants, still restrained.
+bright_red = "#ce7169"
+bright_yellow = "#b99d60"
+bright_green = "#96a66c"
+bright_cyan = "#6da49d"
+bright_blue = "#7d9fb6"
+bright_magenta = "#b9829b"
+
+# Cursor and links.
+cursor = "#829b9a"
+cursor_text = "#080b0d"
+url = "#668ba5"
+inactive_border = "#151e21"
+
+# Complete Kuro semantic color contract.
+accent_text = "#080b0d"
+selection_foreground = "#cbd4d3"
+active_border_color = "#668ba5"
+active_tab_background = "#253b42"
+tab_active_foreground = "#cbd4d3"
+tab_inactive_background = "#1b2528"
+tab_inactive_foreground = "#9aa8a8"

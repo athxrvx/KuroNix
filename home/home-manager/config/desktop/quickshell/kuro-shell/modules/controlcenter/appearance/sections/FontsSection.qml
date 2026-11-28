@@ -68,12 +68,5 @@ CollapsibleSection {
             currentFont: KuroTheme.toolkitFont
             onFontSelected: fontName => root.setKuroFont("toolkit.font", fontName)
         }
-
-        StyledText {
-            Layout.fillWidth: true
-            text: qsTr("Shell font is shared by Quickshell and the terminal. Toolkit font and colors apply to GTK 3/4 and Qt 5/6 through Kuro Engine.")
-            color: Appearance.colors.subtext
-            wrapMode: Text.WordWrap
-        }
     }
 }

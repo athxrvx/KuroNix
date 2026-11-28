@@ -278,7 +278,7 @@ def write_desktop_entry(app: dict[str, str]) -> None:
             "Type=Application",
             f"Name={desktop_text(app['name'])}",
             f"Comment={desktop_text('Open ' + app['url'])}",
-            f"Exec=systemd-run --user --scope --collect --quiet -- chromium --app={desktop_quote(app['url'])}",
+            f"Exec=systemd-run --user --scope --collect --quiet -- firefox --new-window {desktop_quote(app['url'])}",
             f"Icon={desktop_text(icon)}",
             "Terminal=false",
             "Categories=Network;WebBrowser;",

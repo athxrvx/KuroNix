@@ -1,0 +1,190 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+home="${HOME:?}"
+state_file="$home/.cache/quickshell/gpu-screen-recorder.pid"
+
+notify() {
+    command -v notify-send >/dev/null 2>&1 && notify-send -a Quickshell "$1" "$2" || true
+}
+
+is_recorder_pid() {
+    local candidate="$1" executable
+    [[ "$candidate" =~ ^[0-9]+$ && -r "/proc/$candidate/exe" ]] || return 1
+    executable="$(readlink "/proc/$candidate/exe" 2>/dev/null)" || return 1
+    executable="${executable% (deleted)}"
+    [[ "${executable##*/}" == "gpu-screen-recorder" ]] && kill -0 "$candidate" 2>/dev/null
+}
+
+require_command() {
+    if ! command -v "$1" >/dev/null 2>&1; then
+        notify "Capture unavailable" "Install $1 to use this capture mode."
+        exit 127
+    fi
+}
+
+find_recorder_pid() {
+    if [[ -s "$state_file" ]]; then
+        local candidate
+        candidate="$(cat "$state_file")"
+        if is_recorder_pid "$candidate"; then
+            printf '%s' "$candidate"
+            return 0
+        fi
+    fi
+
+    local exe_file recorder_pid
+    for exe_file in /proc/[0-9]*/exe; do
+        recorder_pid="${exe_file#/proc/}"
+        recorder_pid="${recorder_pid%/exe}"
+        if is_recorder_pid "$recorder_pid"; then
+            printf '%s' "$recorder_pid"
+            return 0
+        fi
+    done
+    return 1
+}
+
+area_geometry() {
+    case "$1" in
+        full) printf '%s' screen ;;
+        selection) slurp -f '%wx%h+%x+%y' ;;
+        *) return 2 ;;
+    esac
+}
+
+case "${1:-}" in
+    discard)
+        [[ -z "${2:-}" ]] || rm -f -- "$2"
+        ;;
+    freeze)
+        require_command grim
+        runtime_dir="${XDG_RUNTIME_DIR:-/tmp}"
+        mkdir -p "$runtime_dir"
+        frozen_frame="$(mktemp "$runtime_dir/kuro-capture-${UID}-XXXXXX.png")"
+        rm -f -- "$frozen_frame"
+        if [[ -n "${2:-}" ]]; then
+            grim -o "$2" "$frozen_frame"
+        else
+            grim "$frozen_frame"
+        fi
+        printf '%s\n' "$frozen_frame"
+        ;;
+    screenshot)
+        area="${2:-full}"
+        geometry="${3:-}"
+        frozen_frame="${4:-}"
+        local_geometry="${5:-}"
+        cleanup_frozen_frame() {
+            [[ -z "$frozen_frame" ]] || rm -f -- "$frozen_frame"
+        }
+        trap cleanup_frozen_frame EXIT
+        outdir="$home/Pictures/Screenshots"
+        mkdir -p "$outdir"
+        file="$outdir/$(date +%Y%m%d-%H%M%S).png"
+        case "$area" in
+            full|screen)
+                if [[ -n "$frozen_frame" && -f "$frozen_frame" ]]; then
+                    cp "$frozen_frame" "$file"
+                else
+                    require_command grim
+                    grim "$file"
+                fi
+                ;;
+            selection)
+                if [[ -n "$frozen_frame" && -f "$frozen_frame" && -n "$local_geometry" ]]; then
+                    require_command magick
+                    magick "$frozen_frame" -crop "$local_geometry" +repage "$file"
+                else
+                    require_command grim
+                    if [[ -z "$geometry" && "$area" == "selection" ]]; then
+                        require_command slurp
+                        geometry="$(slurp)" || exit 0
+                        [[ -n "$geometry" ]] || exit 0
+                    fi
+                    grim -g "$geometry" "$file"
+                fi
+                ;;
+            *) exit 2 ;;
+        esac
+        if wl-copy --type image/png < "$file"; then
+            notify "Screenshot saved and copied" "$file"
+        else
+            notify "Screenshot saved" "$file"
+            notify "Clipboard copy failed" "Screenshot was saved at $file."
+        fi
+        ;;
+    record)
+        area="${2:-full}"
+        audio="${3:-none}"
+        selected_geometry="${4:-}"
+        if [[ -s "$state_file" ]] && is_recorder_pid "$(cat "$state_file")"; then
+            notify "Recording already running" "Stop it from the Print capture overlay."
+            exit 1
+        fi
+        command -v gpu-screen-recorder >/dev/null || { notify "Recorder unavailable" "Install gpu-screen-recorder."; exit 127; }
+        if [[ -n "$selected_geometry" ]]; then
+            if [[ "$selected_geometry" =~ ^(-?[0-9]+),(-?[0-9]+)[[:space:]]+([0-9]+)x([0-9]+)$ ]]; then
+                geometry="${BASH_REMATCH[3]}x${BASH_REMATCH[4]}+${BASH_REMATCH[1]}+${BASH_REMATCH[2]}"
+            else
+                notify "Recording failed" "Invalid selected area geometry."
+                exit 2
+            fi
+        else
+            [[ "$area" != "selection" ]] || require_command slurp
+            geometry="$(area_geometry "$area")" || exit 0
+        fi
+        outdir="$home/Videos/Recordings"
+        mkdir -p "$outdir"
+        file="$outdir/recording_$(date +%Y%m%d_%H-%M-%S).mp4"
+        if [[ "$area" == "selection" ]]; then
+            args=(-w region -region "$geometry" -f 60 -o "$file")
+        else
+            args=(-w "$geometry" -f 60 -o "$file")
+        fi
+        case "$audio" in
+            none) ;;
+            system) args+=(-a default_output) ;;
+            external) args+=(-a default_input) ;;
+            both) args+=(-a 'default_output|default_input') ;;
+            *) exit 2 ;;
+        esac
+        mkdir -p "$(dirname "$state_file")"
+        gpu-screen-recorder "${args[@]}" &
+        recorder_pid=$!
+        printf '%s\n' "$recorder_pid" > "$state_file"
+        notify "Screen recording started" "$file"
+        wait "$recorder_pid" || true
+        rm -f "$state_file"
+        recording_uri="$(python3 -c 'from pathlib import Path; from urllib.parse import quote; import sys; print("file://" + quote(str(Path(sys.argv[1]).resolve()), safe="/"))' "$file")"
+        if printf '%s\r\n' "$recording_uri" | wl-copy --type text/uri-list; then
+            notify "Screen recording saved and copied" "$file"
+        else
+            notify "Screen recording saved" "$file"
+            notify "Clipboard copy failed" "Recording was saved at $file."
+        fi
+        ;;
+    stop)
+        recorder_pid="$(find_recorder_pid || true)"
+        if [[ ! "$recorder_pid" =~ ^[0-9]+$ ]]; then
+            rm -f "$state_file"
+            exit 3
+        fi
+
+        kill -INT "$recorder_pid" 2>/dev/null || true
+        for _ in {1..50}; do
+            kill -0 "$recorder_pid" 2>/dev/null || exit 0
+            sleep 0.1
+        done
+        kill -TERM "$recorder_pid" 2>/dev/null || true
+        for _ in {1..20}; do
+            kill -0 "$recorder_pid" 2>/dev/null || exit 0
+            sleep 0.1
+        done
+        exit 1
+        ;;
+    status)
+        find_recorder_pid >/dev/null
+        ;;
+    *) exit 2 ;;
+esac

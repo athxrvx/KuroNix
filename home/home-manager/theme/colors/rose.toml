@@ -1,0 +1,52 @@
+name = "Rosé"
+mode = "dark"
+
+# Monochromatic dark pink / rose palette.
+accent = "#e58ab9"
+selection = "#713653"
+muted = "#a77b96"
+
+# Deep plum backgrounds with subtle berry undertones.
+background = "#260d21"
+dark_background = "#1c0919"
+darker_background = "#130611"
+lighter_background = "#4a1b3d"
+
+# Soft rose-tinted text.
+foreground = "#ead6e2"
+dark_foreground = "#a9879d"
+light_foreground = "#f1dce8"
+bright_foreground = "#fff3fa"
+
+# Muted pink semantic colors.
+red = "#d8799d"
+yellow = "#e7a6c4"
+orange = "#d98caf"
+green = "#b77d9d"
+cyan = "#c78eae"
+blue = "#bd83a5"
+magenta = "#d69abb"
+brown = "#a96e91"
+
+# Brighter counterparts, still entirely within the pink spectrum.
+bright_red = "#f09aba"
+bright_yellow = "#f4bfd5"
+bright_green = "#d59fba"
+bright_cyan = "#e0abc5"
+bright_blue = "#dba0bd"
+bright_magenta = "#f0c2d9"
+
+# Cursor and links.
+cursor = "#f0a8c8"
+cursor_text = "#260d21"
+url = "#e5a2c2"
+inactive_border = "#321229"
+
+# Complete Kuro semantic color contract.
+accent_text = "#260d21"
+selection_foreground = "#f8e8f0"
+active_border_color = "#d987ae"
+active_tab_background = "#713653"
+tab_active_foreground = "#fff3fa"
+tab_inactive_background = "#3b1731"
+tab_inactive_foreground = "#d8bdcd"

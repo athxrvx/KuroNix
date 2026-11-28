@@ -2,7 +2,7 @@
 let
   kuroShellFiles = pkgs.callPackage ./nix/default.nix { rev = "nix-config"; };
   kurogen = import ../../kuro/kurogen.nix { inherit pkgs; };
-  kuroCapture = pkgs.writeShellScriptBin "kuro-capture" (builtins.readFile ../kuro/bin/capture);
+  kuroCapture = pkgs.writeShellScriptBin "kuro-capture" (builtins.readFile ../bin/capture);
   kuroIdleLock = pkgs.writeShellScriptBin "kuro-idle-lock" ''
     if ${pkgs.quickshell}/bin/qs -c shell ipc call idleInhibitor isEnabled 2>/dev/null | ${pkgs.gnugrep}/bin/grep -qx true; then
       exit 0
@@ -32,12 +32,9 @@ let
 in
 {
   home.packages = [ kuroShellFiles kurogen pkgs.quickshell kuroCapture pkgs.swayidle kuroIdle ] ++ (with pkgs; [
-    awww
     imagemagick
     pciutils
-    yt-dlp
     dex
-    mpv
     curl
     mpc
     gpu-screen-recorder

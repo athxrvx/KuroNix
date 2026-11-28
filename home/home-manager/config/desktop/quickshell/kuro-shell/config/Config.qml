@@ -104,7 +104,6 @@ Singleton {
 
     function serializeAppearance(): var {
         return {
-            iconTheme: appearance.iconTheme,
             rounding: { scale: 1.0 },
             spacing: { scale: 1.0 },
             padding: { scale: 1.0 },

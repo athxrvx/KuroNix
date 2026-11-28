@@ -251,8 +251,14 @@ Item {
         inactiveColour: toggle
             ? Colours.layer(Colours.palette.m3surfaceContainerHighest, 2)
             : Colours.palette.m3primary
-        inactiveOnColour: toggle ? Colours.palette.m3onSurfaceVariant : Colours.palette.m3onPrimary
+        // Some themes map onSurfaceVariant to the same value as surfaceContainerHighest,
+        // which makes the icon invisible on an unchecked toggle. Derive a contrasting
+        // icon colour from the actual background instead.
+        inactiveOnColour: toggle ? Colours.on(inactiveColour) : Colours.palette.m3onPrimary
         toggle: true
+        // Keep the icon filled when the toggle is off instead of falling back to
+        // IconButton's outlined (fill 0) inactive style.
+        fillWhenInactive: true
         radiusAnim.duration: Appearance.anim.durations.expressiveFastSpatial
         radiusAnim.easing.bezierCurve: Appearance.anim.curves.expressiveFastSpatial
 

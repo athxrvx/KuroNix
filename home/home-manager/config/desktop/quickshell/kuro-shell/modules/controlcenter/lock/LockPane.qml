@@ -18,7 +18,6 @@ Item {
 
     required property Session session
 
-    property bool showExtras: Config.lock.showExtras ?? true
     property bool recolourLogo: Config.lock.recolourLogo ?? false
     property bool enableFprint: Config.lock.enableFprint ?? true
     property int maxFprintTries: Config.lock.maxFprintTries ?? 3
@@ -29,7 +28,6 @@ Item {
     anchors.fill: parent
 
     function saveConfig() {
-        Config.lock.showExtras = root.showExtras;
         Config.lock.recolourLogo = root.recolourLogo;
         Config.lock.enableFprint = root.enableFprint;
         Config.lock.maxFprintTries = root.maxFprintTries;
@@ -125,22 +123,13 @@ Item {
                     id: layoutSection
 
                     title: qsTr("Appearance")
-                    description: qsTr("Side panels show weather, media, system resources and notifications")
+                    description: qsTr("Lock screen appearance options")
                     expanded: true
                     showBackground: true
 
                     ColumnLayout {
                         spacing: Appearance.spacing.sm
                         Layout.fillWidth: true
-
-                        SwitchRow {
-                            label: qsTr("Show side panels")
-                            checked: root.showExtras
-                            onToggled: checked => {
-                                root.showExtras = checked;
-                                root.saveConfig();
-                            }
-                        }
 
                         SwitchRow {
                             label: qsTr("Tint avatar with colour scheme")

@@ -10,11 +10,14 @@
   zramSwap.enable = true;
 
   services.portmaster.enable = true;
-  # Battery/power info for Kuro and apps (Quickshell.Services.UPower).
   services.upower.enable = true;
 
-  # Kuro screen recording (KMS capture needs the capability wrapper).
   programs.gpu-screen-recorder.enable = true;
+
+  virtualisation.waydroid = {
+    enable = true;
+    package = pkgs.waydroid-nftables;
+  };
 
   # Local LLM server. Use the CUDA build so Ollama runs on the RTX 4050
   # instead of the iGPU. athena is a PRIME offload laptop, so point the

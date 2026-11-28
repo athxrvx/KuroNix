@@ -16,10 +16,20 @@ Item {
 
     states: State {
         name: "visible"
-        when: root.visibilities.osd && Config.osd.enabled
+        when: root.visibilities.osd && Config.osd.enabled && !root.visibilities.session
 
         PropertyChanges {
             root.implicitWidth: content.implicitWidth
+        }
+    }
+
+    // The OSD must never overlap the session panel or its confirmation prompt.
+    Connections {
+        target: root.visibilities
+
+        function onSessionChanged(): void {
+            if (root.visibilities.session)
+                root.visibilities.osd = false;
         }
     }
 

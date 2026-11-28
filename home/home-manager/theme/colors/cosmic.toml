@@ -1,0 +1,49 @@
+name = "Cosmic"
+mode = "dark"
+
+accent = "#97bedc"
+selection = "#fad07a"
+muted = "#888888"
+
+# Background used by Kuro Shell.
+background = "#0d0d0d"
+# darker_background is used by GTK, Qt, Kitty, and other apps.
+dark_background = "#151515"
+darker_background = "#080808"
+lighter_background = "#303030"
+
+foreground = "#dedede"
+dark_foreground = "#888888"
+light_foreground = "#dedede"
+bright_foreground = "#ffffff"
+
+red = "#e27373"
+yellow = "#ffba7b"
+orange = "#ffa560"
+green = "#94b979"
+cyan = "#00988e"
+blue = "#97bedc"
+magenta = "#e1c0fa"
+brown = "#8a694c"
+
+bright_red = "#ffa1a1"
+bright_yellow = "#ffdca0"
+bright_green = "#bddeab"
+bright_cyan = "#1ab2a8"
+bright_blue = "#b1d8f6"
+bright_magenta = "#fbdaff"
+
+# Jellybeans keeps its warm cursor and link colors.
+cursor = "#ffa560"
+cursor_text = "#0d0d0d"
+url = "#97bedc"
+inactive_border = "#111111"
+
+# Complete Kuro semantic color contract.
+accent_text = "#0d0d0d"
+selection_foreground = "#0d0d0d"
+active_border_color = "#97bedc"
+active_tab_background = "#97bedc"
+tab_active_foreground = "#ffffff"
+tab_inactive_background = "#303030"
+tab_inactive_foreground = "#dedede"

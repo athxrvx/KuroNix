@@ -36,7 +36,7 @@ Searcher {
         }
         // Keep launched apps outside KuroShell's service cgroup. Home Manager
         // activation restarts the shell, and systemd otherwise kills all of
-        // its child apps (including Chromium) with it.
+        // its child apps (including Firefox) with it.
         if (entry.runInTerminal)
             Quickshell.execDetached({
                 command: ["systemd-run", "--user", "--scope", "--collect", "--quiet", "--", ...Config.general.apps.terminal, `${Quickshell.shellDir}/assets/wrap_term_launch.sh`, ...entry.command],
@@ -55,6 +55,28 @@ Searcher {
     function withBuiltInFallbacks(results: list<var>): list<var> {
         const ids = results.map(entry => entry.id);
         return [...results, ...root.builtInApps.filter(app => !ids.includes(app.id))];
+    }
+
+    function isFavourite(app: var): bool {
+        return Strings.testRegexList(Config.launcher.favouriteApps || [], app.id || "");
+    }
+
+    function isHidden(app: var): bool {
+        return Strings.testRegexList(Config.launcher.hiddenApps || [], app.id || "");
+    }
+
+    // Apply the launcher preferences from the settings app: hidden apps are
+    // dropped entirely, favourites float to the top, the rest sort by name.
+    function applyUserPreferences(apps: list<var>): list<var> {
+        return apps
+            .filter(app => !root.isHidden(app))
+            .sort((a, b) => {
+                const aFav = root.isFavourite(a);
+                const bFav = root.isFavourite(b);
+                if (aFav !== bFav)
+                    return aFav ? -1 : 1;
+                return a.name.localeCompare(b.name);
+            });
     }
 
     function search(search: string): list<var> {
@@ -87,24 +109,22 @@ Searcher {
 
             if (!search.startsWith(`${prefix}t `)) {
                 const results = query(search).map(e => e.modelData);
-                return withBuiltInFallbacks(results.filter(app => !root.builtInApps.some(builtin => builtin.id === app.id)))
-                    .filter(app => !search.trim() || app.name.toLowerCase().includes(search.trim().toLowerCase()))
-                    .sort((a, b) => a.name.localeCompare(b.name));
+                return root.applyUserPreferences(withBuiltInFallbacks(results.filter(app => !root.builtInApps.some(builtin => builtin.id === app.id)))
+                    .filter(app => !search.trim() || app.name.toLowerCase().includes(search.trim().toLowerCase())));
             }
         }
 
         const term = search.slice(prefix.length + 2);
         const results = query(term).map(e => e.modelData);
         if (search.startsWith(`${prefix}t `))
-            return results.filter(a => a.runInTerminal);
-        return withBuiltInFallbacks(results.filter(app => !root.builtInApps.some(builtin => builtin.id === app.id)))
+            return root.applyUserPreferences(results.filter(a => a.runInTerminal));
+        return root.applyUserPreferences(withBuiltInFallbacks(results.filter(app => !root.builtInApps.some(builtin => builtin.id === app.id)))
             .filter(app => !term.trim() || keys.some(key => {
                 const field = key === "desc" ? "comment" : key === "wmClass" ? "startupClass" : key;
                 const value = app[field];
                 const text = Array.isArray(value) ? value.join(" ") : String(value ?? "");
                 return text.toLowerCase().includes(term.trim().toLowerCase());
-            }))
-            .sort((a, b) => a.name.localeCompare(b.name));
+            })));
     }
 
     function selector(item: var): string {

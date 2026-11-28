@@ -67,7 +67,7 @@ Singleton {
             return;
         Quickshell.execDetached([
             "systemd-run", "--user", "--scope", "--collect", "--quiet", "--",
-            "chromium", `--app=${app.url}`
+            "firefox", "--new-window", app.url
         ]);
     }
 
